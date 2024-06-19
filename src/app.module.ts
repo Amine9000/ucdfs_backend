@@ -18,6 +18,7 @@ import { StudentsModule } from './students/students.module';
       database: 'ucd_db',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
+      logging: ['error'],
     }),
     EtapesModule,
     ModulesModule,

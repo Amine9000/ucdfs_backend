@@ -9,5 +9,6 @@ import { Unit } from 'src/modules/entities/unit.entity';
   imports: [TypeOrmModule.forFeature([Etape, Unit])],
   controllers: [EtapesController],
   providers: [EtapesService],
+  exports: [EtapesService],
 })
 export class EtapesModule {}

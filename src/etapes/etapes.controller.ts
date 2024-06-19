@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { EtapesService } from './etapes.service';
 import { CreateEtapeDto } from './dto/create-etape.dto';
 import { UpdateEtapeDto } from './dto/update-etape.dto';
@@ -13,13 +23,21 @@ export class EtapesController {
   }
 
   @Get()
-  findAll() {
-    return this.etapesService.findAll();
+  findAll(
+    @Query('skip', ParseIntPipe) skip: number,
+    @Query('take', ParseIntPipe) take: number,
+  ) {
+    return this.etapesService.findAll(skip, take);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.etapesService.findOne(+id);
+  @Get(':etape_code')
+  findOne(@Param('etape_code') etape_code: string) {
+    return this.etapesService.findOne(etape_code);
+  }
+
+  @Get(':etape_code/validation')
+  studentsValidationByEtape(@Param('etape_code') etape_code: string) {
+    return this.etapesService.studentsValidationByEtape(etape_code);
   }
 
   @Patch(':id')

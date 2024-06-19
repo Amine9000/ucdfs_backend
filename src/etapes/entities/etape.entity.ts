@@ -4,9 +4,9 @@ import { Column, Entity, OneToMany } from 'typeorm';
 @Entity({ name: 'etapes' })
 export class Etape {
   @Column({ primary: true })
-  code_etape: string;
+  etape_code: string;
   @Column()
-  version_etape: string;
+  etape_name: string;
 
   @OneToMany(() => Unit, (module) => module.etape)
   modules: Unit[];

@@ -14,6 +14,6 @@ export class Unit {
   @JoinColumn({ name: 'etape' })
   etape: Etape;
 
-  @ManyToMany(() => Student)
+  @ManyToMany(() => Student, (student) => student.modules)
   students: Student[];
 }

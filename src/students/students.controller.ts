@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
@@ -15,6 +25,34 @@ export class StudentsController {
   @Get()
   findAll() {
     return this.studentsService.findAll();
+  }
+
+  @Get('etape/:etape_code')
+  async findAllByEtape(
+    @Param('etape_code') etape_code: string,
+    @Query('skip', ParseIntPipe) skip: number,
+    @Query('take', ParseIntPipe) take: number,
+  ) {
+    const data = await this.studentsService.findAllByEtape(
+      etape_code,
+      skip,
+      take,
+    );
+    return data;
+  }
+
+  @Get('validation/:etape_code')
+  async studentsValidationByEtape(
+    @Param('etape_code') etape_code: string,
+    @Query('skip', ParseIntPipe) skip: number,
+    @Query('take', ParseIntPipe) take: number,
+  ) {
+    const data = await this.studentsService.studentsValidationByEtape(
+      etape_code,
+      skip,
+      take,
+    );
+    return data;
   }
 
   @Get(':id')

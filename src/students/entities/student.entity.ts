@@ -21,19 +21,16 @@ export class Student {
   @Column()
   student_lname: string;
 
-  @Column()
-  student_email: string;
-
   @Column({ unique: true })
   student_cne: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   student_cin: string;
 
-  @Column()
-  student_birthday: string;
+  @Column({ type: 'date' })
+  student_birthdate: Date;
 
-  @ManyToMany(() => Unit)
+  @ManyToMany(() => Unit, (etape) => etape.students)
   @JoinTable({
     name: 'students_modules',
     joinColumn: {
