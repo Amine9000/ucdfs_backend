@@ -30,6 +30,16 @@ export class EtapesController {
     return this.etapesService.findAll(skip, take);
   }
 
+  @Get('search')
+  async search(
+    @Query('q') search_query: string,
+    @Query('skip', ParseIntPipe) skip: number,
+    @Query('take', ParseIntPipe) take: number,
+  ) {
+    const data = await this.etapesService.search(search_query, skip, take);
+    return data;
+  }
+
   @Get(':etape_code')
   findOne(@Param('etape_code') etape_code: string) {
     return this.etapesService.findOne(etape_code);

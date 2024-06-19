@@ -112,6 +112,66 @@ export class StudentsService {
     return studentsData;
   }
 
+  async search(
+    etape_code: string,
+    search_query: string,
+    skip: number,
+    take: number,
+  ) {
+    const etape = await this.etapesRepo.findOne({
+      where: { etape_code },
+      relations: ['modules'],
+    });
+    if (!etape) return [];
+
+    const moduleCodes = etape.modules.map((mod) => mod.module_code);
+
+    const studentIds = await this.studentsRepo
+      .createQueryBuilder('student')
+      .leftJoin('student.modules', 'module')
+      .leftJoin('module.etape', 'etape')
+      .where('etape.etape_code = :etape_code', { etape_code })
+      .andWhere(
+        '(student.student_fname LIKE :search_query OR student.student_lname LIKE :search_query OR student.student_code LIKE :search_query OR student.student_cne LIKE :search_query OR student.student_cin LIKE :search_query)',
+        { search_query: `%${search_query}%` },
+      )
+      .select('student.id')
+      .distinct(true)
+      .skip(skip)
+      .take(take)
+      .getMany();
+
+    if (studentIds.length === 0) return [];
+
+    const students = await this.studentsRepo.find({
+      where: { id: In(studentIds.map((s) => s.id)) },
+      relations: ['modules', 'modules.etape'],
+    });
+
+    const studentsData = students.map((student) => {
+      const { modules, ...rest } = student;
+      const nStd: any = {
+        Code: rest.student_code,
+        Prenom: rest.student_fname,
+        Nom: rest.student_lname,
+        CNE: rest.student_cne,
+        CIN: rest.student_cin,
+        'Date Naissance': rest.student_birthdate,
+      };
+      moduleCodes.forEach((modCode) => {
+        nStd[modCode] = 'NI';
+      });
+      modules.forEach((mod) => {
+        if (moduleCodes.includes(mod.module_code)) {
+          nStd[mod.module_code] = 'I';
+        }
+      });
+      return nStd;
+    });
+
+    return studentsData;
+  }
+
   findOne(id: number) {
     return `This action returns a #${id} student`;
   }

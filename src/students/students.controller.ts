@@ -55,6 +55,22 @@ export class StudentsController {
     return data;
   }
 
+  @Get('search/:etape_code')
+  async search(
+    @Param('etape_code') etape_code: string,
+    @Query('q') search_query: string,
+    @Query('skip', ParseIntPipe) skip: number,
+    @Query('take', ParseIntPipe) take: number,
+  ) {
+    const data = await this.studentsService.search(
+      etape_code,
+      search_query,
+      skip,
+      take,
+    );
+    return data;
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.studentsService.findOne(+id);

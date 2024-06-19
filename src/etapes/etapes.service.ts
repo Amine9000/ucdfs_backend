@@ -99,6 +99,25 @@ export class EtapesService {
     return studentsData;
   }
 
+  async search(search_query: string, skip: number, take: number) {
+    const queryBuilder = this.etapeRepo
+      .createQueryBuilder('etape')
+      .leftJoinAndSelect('etape.modules', 'module')
+      .leftJoinAndSelect('module.students', 'student')
+      .where(
+        'etape.etape_code LIKE :search_query OR etape.etape_name LIKE :search_query',
+        {
+          search_query: `%${search_query}%`,
+        },
+      )
+      .skip(skip)
+      .take(take);
+
+    const data = await queryBuilder.getMany();
+
+    return this.transformData(data);
+  }
+
   findOne(etape_code: string) {
     return this.etapeRepo.findOne({ where: { etape_code } });
   }
