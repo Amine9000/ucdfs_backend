@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +9,8 @@ import { Etape } from 'src/etapes/entities/etape.entity';
 
 @Injectable()
 export class StudentsService {
+  private readonly logger = new Logger(StudentsService.name);
+
   constructor(
     @InjectRepository(Student)
     private readonly studentsRepo: Repository<Student>,
@@ -16,19 +18,35 @@ export class StudentsService {
     private readonly etapesRepo: Repository<Etape>,
     private readonly modulesService: ModulesService,
   ) {}
-  async create(createStudentDto: CreateStudentDto) {
+  async create(createStudentDto: CreateStudentDto): Promise<Student | null> {
     const { modules, ...studentDto } = createStudentDto;
-    const existingStudent = await this.studentsRepo.findOne({
-      where: {
-        student_cne: studentDto.student_cne,
-        student_cin: studentDto.student_cin,
-      },
-    });
-    if (!existingStudent) {
-      const modulesEntities = await this.modulesService.findByIds(modules);
-      const student = this.studentsRepo.create({ ...studentDto });
-      student.modules = modulesEntities;
-      return this.studentsRepo.save(student);
+
+    try {
+      return await this.studentsRepo.manager.transaction(
+        async (transactionalEntityManager) => {
+          const existingStudent = await transactionalEntityManager.findOne(
+            Student,
+            {
+              where: [
+                { student_cne: studentDto.student_cne },
+                { student_cin: studentDto.student_cin },
+              ],
+              lock: { mode: 'pessimistic_write' },
+            },
+          );
+
+          if (existingStudent) {
+            return null;
+          }
+
+          const modulesEntities = await this.modulesService.findByIds(modules);
+          const student = this.studentsRepo.create({ ...studentDto });
+          student.modules = modulesEntities;
+          return await transactionalEntityManager.save(student);
+        },
+      );
+    } catch (error) {
+      this.logger.error(JSON.stringify(error));
     }
   }
 
@@ -40,7 +58,7 @@ export class StudentsService {
     const students = await this.studentsRepo
       .createQueryBuilder('student')
       .leftJoinAndSelect('student.modules', 'module')
-      .leftJoinAndSelect('module.etape', 'etape')
+      .leftJoinAndSelect('module.etapes', 'etape')
       .where('etape.etape_code = :etape_code', { etape_code })
       .skip(skip)
       .take(take)
@@ -73,7 +91,7 @@ export class StudentsService {
     const studentIds = await this.studentsRepo
       .createQueryBuilder('student')
       .leftJoin('student.modules', 'module')
-      .leftJoin('module.etape', 'etape')
+      .leftJoin('module.etapes', 'etape')
       .where('etape.etape_code = :etape_code', { etape_code })
       .select('student.id')
       .distinct(true)
@@ -85,7 +103,7 @@ export class StudentsService {
 
     const students = await this.studentsRepo.find({
       where: { id: In(studentIds.map((s) => s.id)) },
-      relations: ['modules', 'modules.etape'],
+      relations: ['modules', 'modules.etapes'],
     });
 
     const studentsData = students.map((student) => {
@@ -129,7 +147,7 @@ export class StudentsService {
     const studentIds = await this.studentsRepo
       .createQueryBuilder('student')
       .leftJoin('student.modules', 'module')
-      .leftJoin('module.etape', 'etape')
+      .leftJoin('module.etapes', 'etape')
       .where('etape.etape_code = :etape_code', { etape_code })
       .andWhere(
         '(student.student_fname LIKE :search_query OR student.student_lname LIKE :search_query OR student.student_code LIKE :search_query OR student.student_cne LIKE :search_query OR student.student_cin LIKE :search_query)',
@@ -145,7 +163,7 @@ export class StudentsService {
 
     const students = await this.studentsRepo.find({
       where: { id: In(studentIds.map((s) => s.id)) },
-      relations: ['modules', 'modules.etape'],
+      relations: ['modules', 'modules.etapes'],
     });
 
     const studentsData = students.map((student) => {

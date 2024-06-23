@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { UpdateFileDto } from './dto/update-file.dto';
 import * as xlsx from 'xlsx';
 import { FileColumnsNames } from './types/FileColumnsNames';
@@ -13,25 +13,31 @@ import * as fs from 'fs';
 import { v4 } from 'uuid';
 import { archiveFolder } from 'zip-lib';
 import { rimrafSync } from 'rimraf';
+import * as cliProgress from 'cli-progress';
 
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger(FilesService.name);
+
   constructor(
     private readonly etapesService: EtapesService,
     private readonly modulesService: ModulesService,
     private readonly studentsService: StudentsService,
   ) {}
   async create(file: Express.Multer.File) {
-    const data = this.readFile(file.path);
-    const etapes = this.getAllEtapes(data);
-    const modules = this.getAllModulesByEtape(data);
-    const students = this.groupModulesByName(data);
-    await this.saveEtapes(etapes);
-    await this.saveModules(modules);
-    await this.saveStudents(students);
+    if (file) {
+      const data = this.readFile(file.path);
+      const etapes = this.getAllEtapes(data);
+      const modules = this.getAllModulesByEtape(data);
+      const students = this.getStudents(data);
+      await this.saveEtapes(etapes);
+      await this.saveModules(modules);
+      await this.saveStudents(students);
+    }
   }
 
   readFile(path: string): FileColumnsNames[] {
+    this.logger.log('READING THE FILE.');
     const workbook = xlsx.readFile(path, { cellDates: true });
     const sheet = workbook.SheetNames[0];
     const data: FileColumnsNames[] = xlsx.utils.sheet_to_json(
@@ -40,8 +46,15 @@ export class FilesService {
     return data;
   }
 
-  groupModulesByName(data: FileColumnsNames[]) {
+  getStudents(data: FileColumnsNames[]) {
+    this.logger.log('EXTRACTING STUDENTS FROM THE DATA.');
     const groupedData: Record<string, any> = {};
+    const bar1 = new cliProgress.SingleBar(
+      {},
+      cliProgress.Presets.shades_classic,
+    );
+    bar1.start(data.length, 0);
+    let counter = 0;
     for (const record of data) {
       if (record) {
         const { COD_ELP, ...rest } = record;
@@ -62,7 +75,10 @@ export class FilesService {
         }
         groupedData[key]['modules'].add(COD_ELP);
       }
+      counter++;
+      bar1.update(counter);
     }
+    bar1.stop();
     return Object.values(groupedData).map((etd) => ({
       ...etd,
       modules: Array.from(etd['modules']),
@@ -70,38 +86,50 @@ export class FilesService {
   }
 
   getAllModulesByEtape(data: FileColumnsNames[]) {
+    this.logger.log('EXTRACTING MODULES FROM THE DATA.');
     const allModules: object[] = data.map((record) => ({
       etape_code: record['CODE_ETAPE'],
       module_code: record['COD_ELP'],
       module_name: record['LIB_ELP'],
     }));
     const modulesSets = {};
-    const modules = new Set<string>();
-    for (const mod of allModules) {
+    // const moduleCodesSet = new Set<string>();
+    const bar1 = new cliProgress.SingleBar(
+      {},
+      cliProgress.Presets.shades_classic,
+    );
+    bar1.start(allModules.length, 0);
+    let counter = 0;
+    for (let i = 0; i < allModules.length; i++) {
+      const mod = allModules[i];
       const key = mod['etape_code'];
       if (!modulesSets[key]) {
-        modulesSets[key] = [
-          {
-            module_code: mod['module_code'],
-            module_name: mod['module_name'],
-          },
-        ];
-      } else {
-        if (!modules.has(mod['module_code'])) {
-          modulesSets[key].push({
-            module_code: mod['module_code'],
-            module_name: mod['module_name'],
-          });
-          modules.add(mod['module_code']);
-        }
+        modulesSets[key] = [];
       }
+      // if (!moduleCodesSet.has(mod['module_code'])) {
+      modulesSets[key].push({
+        module_code: mod['module_code'],
+        module_name: mod['module_name'],
+      });
+      // moduleCodesSet.add(mod['module_code']);
+      // }
+      counter++;
+      bar1.update(counter);
     }
+    bar1.stop();
     return modulesSets;
   }
 
   getAllEtapes(data: FileColumnsNames[]): CreateEtapeDto[] {
+    this.logger.log('EXTRACTING ETAPES FROM THE DATA.');
     const etapesSet = new Set<string>();
     const etapes: CreateEtapeDto[] = [];
+    const bar1 = new cliProgress.SingleBar(
+      {},
+      cliProgress.Presets.shades_classic,
+    );
+    bar1.start(data.length, 0);
+    let counter = 0;
     data.forEach((record) => {
       if (!etapesSet.has(record['CODE_ETAPE'])) {
         etapes.push({
@@ -110,32 +138,65 @@ export class FilesService {
         });
         etapesSet.add(record['CODE_ETAPE']);
       }
+      counter++;
+      bar1.update(counter);
     });
+    bar1.stop();
     return etapes;
   }
 
   async saveEtapes(etapes: CreateEtapeDto[]) {
+    this.logger.log('SAVING ETAPES TO THE DATABASE.');
+    const bar1 = new cliProgress.SingleBar(
+      {},
+      cliProgress.Presets.shades_classic,
+    );
+    bar1.start(etapes.length, 0);
+    let counter = 0;
     for (const etape of etapes) {
       await this.etapesService.create(etape);
+      counter++;
+      bar1.update(counter);
     }
+    bar1.stop();
   }
 
   async saveModules(modules: Record<string, CreateModuleDto[]>) {
+    this.logger.log('SAVING MODULES TO THE DATABASE.');
     const keys = Object.keys(modules);
+    const bar1 = new cliProgress.SingleBar(
+      {},
+      cliProgress.Presets.shades_classic,
+    );
+    bar1.start(keys.length, 0);
+    let counter = 0;
     for (const key of keys) {
       for (const mod of modules[key]) {
         await this.modulesService.create({
           ...mod,
-          etape_code: key,
+          etape_codes: [key],
         });
       }
+      counter++;
+      bar1.update(counter);
     }
+    bar1.stop();
   }
 
   async saveStudents(students: CreateStudentDto[]) {
+    this.logger.log('SAVING STUDENTS TO THE DATABASE.');
+    const bar1 = new cliProgress.SingleBar(
+      {},
+      cliProgress.Presets.shades_classic,
+    );
+    bar1.start(students.length, 0);
+    let counter = 0;
     for (const student of students) {
       await this.studentsService.create(student);
+      counter++;
+      bar1.update(counter);
     }
+    bar1.stop();
   }
 
   async getStudentsValidationFiles(etape_code: string, groupNum: number) {
@@ -190,13 +251,11 @@ export class FilesService {
     try {
       await archiveFolder(temDirPath, zipPath);
     } catch (error) {
-      console.error(error.message);
+      this.logger.error(error.message);
     }
   }
 
   devideData(data: object[], groupNum: number) {
-    // devide data
-
     let start = 0;
     const groupLength = Math.ceil(data.length / groupNum);
     const groups = [];

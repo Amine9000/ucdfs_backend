@@ -1,5 +1,5 @@
 import { Unit } from 'src/modules/entities/unit.entity';
-import { Column, Entity, OneToMany } from 'typeorm';
+import { Column, Entity, ManyToMany } from 'typeorm';
 
 @Entity({ name: 'etapes' })
 export class Etape {
@@ -8,6 +8,6 @@ export class Etape {
   @Column()
   etape_name: string;
 
-  @OneToMany(() => Unit, (module) => module.etape)
+  @ManyToMany(() => Unit, (module) => module.etapes)
   modules: Unit[];
 }

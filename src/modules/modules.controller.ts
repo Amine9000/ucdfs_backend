@@ -31,8 +31,11 @@ export class ModulesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateModuleDto: UpdateModuleDto) {
-    return this.modulesService.update(+id, updateModuleDto);
+  update(
+    @Param('id') module_code: string,
+    @Body() updateModuleDto: UpdateModuleDto,
+  ) {
+    return this.modulesService.update(module_code, updateModuleDto);
   }
 
   @Delete(':id')

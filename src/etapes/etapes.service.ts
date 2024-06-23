@@ -3,7 +3,7 @@ import { CreateEtapeDto } from './dto/create-etape.dto';
 import { UpdateEtapeDto } from './dto/update-etape.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Etape } from './entities/etape.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Unit } from 'src/modules/entities/unit.entity';
 import { Student } from 'src/students/entities/student.entity';
 
@@ -111,11 +111,16 @@ export class EtapesService {
         },
       )
       .skip(skip)
-      .take(take);
+      .take(take)
+      .setLock('pessimistic_write');
 
     const data = await queryBuilder.getMany();
 
     return this.transformData(data);
+  }
+
+  findByEtapeCode(etape_codes: string[]) {
+    return this.etapeRepo.find({ where: { etape_code: In(etape_codes) } });
   }
 
   findOne(etape_code: string) {

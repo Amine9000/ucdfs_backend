@@ -10,6 +10,7 @@ import {
   UploadedFile,
   StreamableFile,
   ParseIntPipe,
+  Logger,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { UpdateFileDto } from './dto/update-file.dto';
@@ -22,6 +23,8 @@ import * as fs from 'fs';
 
 @Controller('files')
 export class FilesController {
+  private readonly logger = new Logger(FilesController.name);
+
   constructor(private readonly filesService: FilesService) {}
 
   @Post()
@@ -57,7 +60,7 @@ export class FilesController {
     file.on('end', () => {
       fs.unlink(output, (err) => {
         if (err) {
-          console.error(err);
+          this.logger.error(err.message);
         }
       });
     });

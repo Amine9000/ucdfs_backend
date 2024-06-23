@@ -1,6 +1,6 @@
 import { Etape } from 'src/etapes/entities/etape.entity';
 import { Student } from 'src/students/entities/student.entity';
-import { Column, Entity, JoinColumn, ManyToMany, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
 
 @Entity({ name: 'modules' })
 export class Unit {
@@ -10,9 +10,19 @@ export class Unit {
   @Column()
   module_name: string;
 
-  @ManyToOne(() => Etape, (etape) => etape.modules)
-  @JoinColumn({ name: 'etape' })
-  etape: Etape;
+  @ManyToMany(() => Etape, (etape) => etape.modules)
+  @JoinTable({
+    name: 'modules_etapes',
+    joinColumn: {
+      name: 'module',
+      referencedColumnName: 'module_code',
+    },
+    inverseJoinColumn: {
+      name: 'etape',
+      referencedColumnName: 'etape_code',
+    },
+  })
+  etapes: Etape[];
 
   @ManyToMany(() => Student, (student) => student.modules)
   students: Student[];
