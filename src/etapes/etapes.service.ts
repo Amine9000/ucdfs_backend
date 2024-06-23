@@ -111,8 +111,7 @@ export class EtapesService {
         },
       )
       .skip(skip)
-      .take(take)
-      .setLock('pessimistic_write');
+      .take(take);
 
     const data = await queryBuilder.getMany();
 
