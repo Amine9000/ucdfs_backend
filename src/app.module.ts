@@ -3,9 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EtapesModule } from './etapes/etapes.module';
 import { ModulesModule } from './modules/modules.module';
 import { RolesModule } from './roles/roles.module';
-import { AdminsModule } from './admins/admins.module';
 import { FilesModule } from './files/files.module';
 import { StudentsModule } from './students/students.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -23,9 +23,9 @@ import { StudentsModule } from './students/students.module';
     EtapesModule,
     ModulesModule,
     RolesModule,
-    AdminsModule,
     FilesModule,
     StudentsModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [],

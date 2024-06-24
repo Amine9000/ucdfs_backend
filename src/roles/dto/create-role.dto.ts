@@ -1,1 +1,3 @@
-export class CreateRoleDto {}
+export class CreateRoleDto {
+  role_name: string;
+}
