@@ -11,6 +11,7 @@ import {
   StreamableFile,
   ParseIntPipe,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { UpdateFileDto } from './dto/update-file.dto';
@@ -20,8 +21,11 @@ import { extname, resolve } from 'path';
 import { v4 } from 'uuid';
 import { createReadStream } from 'fs';
 import * as fs from 'fs';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('files')
+@UseGuards(AuthGuard, RolesGuard)
 export class FilesController {
   private readonly logger = new Logger(FilesController.name);
 
