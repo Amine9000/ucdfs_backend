@@ -28,9 +28,12 @@ export class AuthService {
         email: user.user_email,
         roles: user.roles.map((role) => role.role_name),
       };
+      delete user.user_password;
+      delete user.user_id;
+
       return {
         access_token: await this.jwtService.signAsync(payload),
-        roles: user.roles.map((role) => role.role_name),
+        user: { ...user, roles: user.roles.map((role) => role.role_name) },
       };
     } else {
       return new HttpException(
