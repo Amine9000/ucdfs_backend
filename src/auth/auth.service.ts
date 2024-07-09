@@ -33,7 +33,10 @@ export class AuthService {
 
       return {
         access_token: await this.jwtService.signAsync(payload),
-        user: { ...user, roles: user.roles.map((role) => role.role_name) },
+        user: {
+          ...user,
+          roles: user.roles.map((role) => role.role_name),
+        },
       };
     } else {
       return new HttpException(
@@ -46,7 +49,7 @@ export class AuthService {
   signUp(signUpDto: SignUpDto) {
     return this.usersService.create({
       ...signUpDto,
-      user_avatar_path: 'avatars/default.svg',
+      user_avatar_path: 'avatars/default.jpg',
     });
   }
 }

@@ -7,6 +7,15 @@ import { FilesModule } from './files/files.module';
 import { StudentsModule } from './students/students.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { join } from 'path';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import * as fs from 'fs';
+
+const publicDir = join(__dirname, '..', 'public');
+console.log(publicDir);
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
 
 @Module({
   imports: [
@@ -20,6 +29,10 @@ import { AuthModule } from './auth/auth.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       logging: ['error'],
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: publicDir,
+      exclude: ['/api/(.*)'],
     }),
     EtapesModule,
     ModulesModule,

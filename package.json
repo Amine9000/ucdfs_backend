@@ -26,6 +26,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/microservices": "^10.3.9",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/serve-static": "^4.0.2",
     "@nestjs/typeorm": "^10.0.2",
     "bcrypt": "^5.1.1",
     "cli-progress": "^3.12.0",
