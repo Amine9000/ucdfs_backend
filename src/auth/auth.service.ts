@@ -38,7 +38,7 @@ export class AuthService {
     } else {
       return new HttpException(
         `Invalid password for the EMAIL : ${signInDto.email}.`,
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.BAD_REQUEST + 1,
       );
     }
   }

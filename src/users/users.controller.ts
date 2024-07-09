@@ -18,7 +18,7 @@ import { Role } from 'src/auth/enums/Role.enum';
 
 @Controller('users')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(Role.UserManager)
+@Roles(Role.STUDENTS_MANAGER)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -35,6 +35,10 @@ export class UsersController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
+  }
+  @Get(':email')
+  findOneByEmail(@Param('email') email: string) {
+    return this.usersService.findOneByEmail(email);
   }
 
   @Patch(':id')

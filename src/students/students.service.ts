@@ -190,8 +190,11 @@ export class StudentsService {
     return studentsData;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} student`;
+  findOne(cne: string) {
+    return this.studentsRepo.findOne({
+      where: { student_cne: cne },
+      relations: ['modules', 'modules.etapes'],
+    });
   }
 
   update(id: number, updateStudentDto: UpdateStudentDto) {
