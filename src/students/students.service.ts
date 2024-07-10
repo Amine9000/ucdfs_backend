@@ -65,12 +65,12 @@ export class StudentsService {
       .getMany();
 
     const data = students.map((student) => ({
-      code: student.student_code,
-      prenom: student.student_fname,
-      nom: student.student_lname,
-      cne: student.student_cne,
-      cin: student.student_cin,
-      'date naissance': student.student_birthdate,
+      Code: student.student_code,
+      Prenom: student.student_fname,
+      Nom: student.student_lname,
+      CNE: student.student_cne,
+      CIN: student.student_cin,
+      'Date Naissance': student.student_birthdate,
     }));
     return data;
   }
@@ -116,14 +116,80 @@ export class StudentsService {
         CIN: rest.student_cin,
         'Date Naissance': rest.student_birthdate,
       };
-      moduleCodes.forEach((modCode) => {
-        nStd[modCode] = 'NI';
+      moduleCodes.forEach((modCode, i) => {
+        nStd[this.abbreviateCourseName(etape.modules[i].module_name)] = 'NI';
       });
       modules.forEach((mod) => {
         if (moduleCodes.includes(mod.module_code)) {
-          nStd[mod.module_code] = 'I';
+          nStd[this.abbreviateCourseName(mod.module_name)] = 'I';
         }
       });
+      return nStd;
+    });
+
+    return studentsData;
+  }
+
+  abbreviateCourseName(courseName: string) {
+    courseName = courseName.replace(/[^0-9a-zA-Z ]/g, '');
+    const words = courseName.split(' ');
+    const excludedWords = ['de', 'la', 'et', 'le', 'les', 'des'];
+    const index = words.findIndex((word) => !isNaN(parseFloat(word)));
+    if (index !== -1) {
+      return words.slice(0, index + 1).join(' ');
+    } else {
+      let wordCount = 0;
+      let end = 0;
+      for (let i = 0; i < words.length; i++) {
+        if (!excludedWords.includes(words[i])) wordCount++;
+        if (wordCount == 2) {
+          end = i;
+          break;
+        }
+      }
+      return words.length <= 2
+        ? words.join(' ')
+        : words.slice(0, end + 1).join(' ');
+    }
+  }
+
+  async searchStudents(
+    etape_code: string,
+    search_query: string,
+    skip: number,
+    take: number,
+  ) {
+    const studentIds = await this.studentsRepo
+      .createQueryBuilder('student')
+      .leftJoin('student.modules', 'module')
+      .leftJoin('module.etapes', 'etape')
+      .where('etape.etape_code = :etape_code', { etape_code })
+      .andWhere(
+        '(student.student_fname LIKE :search_query OR student.student_lname LIKE :search_query OR student.student_code LIKE :search_query OR student.student_cne LIKE :search_query OR student.student_cin LIKE :search_query)',
+        { search_query: `%${search_query}%` },
+      )
+      .select('student.id')
+      .distinct(true)
+      .skip(skip)
+      .take(take)
+      .getMany();
+
+    if (studentIds.length === 0) return [];
+
+    const students = await this.studentsRepo.find({
+      where: { id: In(studentIds.map((s) => s.id)) },
+      relations: ['modules', 'modules.etapes'],
+    });
+
+    const studentsData = students.map((student) => {
+      const nStd: any = {
+        Code: student.student_code,
+        Prenom: student.student_fname,
+        Nom: student.student_lname,
+        CNE: student.student_cne,
+        CIN: student.student_cin,
+        'Date Naissance': student.student_birthdate,
+      };
       return nStd;
     });
 
@@ -176,12 +242,12 @@ export class StudentsService {
         CIN: rest.student_cin,
         'Date Naissance': rest.student_birthdate,
       };
-      moduleCodes.forEach((modCode) => {
-        nStd[modCode] = 'NI';
+      moduleCodes.forEach((modCode, i) => {
+        nStd[this.abbreviateCourseName(etape.modules[i].module_name)] = 'NI';
       });
       modules.forEach((mod) => {
         if (moduleCodes.includes(mod.module_code)) {
-          nStd[mod.module_code] = 'I';
+          nStd[this.abbreviateCourseName(mod.module_name)] = 'I';
         }
       });
       return nStd;

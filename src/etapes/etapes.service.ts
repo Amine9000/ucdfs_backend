@@ -38,6 +38,10 @@ export class EtapesService {
       etapes.push({
         code: etape.etape_code,
         nom: etape.etape_name,
+        semester:
+          etape.modules.length > 0
+            ? etape.modules[0].module_code[4]
+            : 'unknown',
         modules: etape.modules.length,
         etudiants: this.countStudentsByEtape(etape.modules),
       });
