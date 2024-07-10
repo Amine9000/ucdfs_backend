@@ -33,9 +33,53 @@ export class FilesService {
       const etapes = this.getAllEtapes(data);
       const modules = this.getAllModulesByEtape(data);
       const students = this.getStudents(data);
+
+      const originalStudents = JSON.parse(JSON.stringify(students));
+
       await this.saveEtapes(etapes);
       await this.saveModules(modules);
       await this.saveStudents(students);
+      await this.deleteFile(file.path);
+      return this.preparePassordsFile(file, originalStudents);
+    }
+  }
+
+  async preparePassordsFile(file: Express.Multer.File, students: any[]) {
+    const dirPath = join(__dirname, '..', '..', '..', 'downloads');
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath);
+    }
+    const fileName = file.filename + '-' + v4();
+
+    const filePath = join(dirPath, fileName);
+
+    // PREPARE STUDENTS DATA
+
+    const studnets_file_data = students.map((student) => {
+      return {
+        code: student.student_code,
+        Nom: student.student_lname,
+        Prenom: student.student_fname,
+        date_naissanse: new Date(student.student_birthdate).toLocaleDateString(
+          'en-GB',
+        ),
+        cne: student.student_cne,
+        cin: student.student_cin,
+        password: student.student_pwd,
+      };
+    });
+
+    await this.saveToFile(studnets_file_data, filePath);
+    return filePath;
+  }
+
+  async deleteFile(path: string) {
+    if (fs.existsSync(path)) {
+      fs.unlink(path, (err) => {
+        if (err) {
+          this.logger.error(err.message);
+        }
+      });
     }
   }
 

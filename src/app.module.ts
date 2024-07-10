@@ -12,7 +12,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import * as fs from 'fs';
 
 const publicDir = join(__dirname, '..', 'public');
-console.log(publicDir);
 if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true });
 }
