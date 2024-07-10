@@ -30,6 +30,12 @@ export class Student {
   @Column({ type: 'date' })
   student_birthdate: Date;
 
+  @Column()
+  student_pwd: string;
+
+  @Column({ default: false, type: 'boolean' })
+  is_first_login: boolean;
+
   @ManyToMany(() => Unit, (etape) => etape.students)
   @JoinTable({
     name: 'students_modules',

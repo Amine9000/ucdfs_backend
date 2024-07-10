@@ -14,6 +14,9 @@ import { v4 } from 'uuid';
 import { archiveFolder } from 'zip-lib';
 import { rimrafSync } from 'rimraf';
 import * as cliProgress from 'cli-progress';
+import * as passwordGenerator from 'generate-password';
+import * as bcrypt from 'bcrypt';
+import { saltOrRounds } from 'src/users/constants/bcrypt';
 
 @Injectable()
 export class FilesService {
@@ -81,6 +84,10 @@ export class FilesService {
     bar1.stop();
     return Object.values(groupedData).map((etd) => ({
       ...etd,
+      student_pwd: passwordGenerator.generate({
+        length: 10,
+        numbers: true,
+      }),
       modules: Array.from(etd['modules']),
     }));
   }
@@ -192,6 +199,10 @@ export class FilesService {
     bar1.start(students.length, 0);
     let counter = 0;
     for (const student of students) {
+      student.student_pwd = await bcrypt.hash(
+        student.student_pwd,
+        saltOrRounds,
+      );
       await this.studentsService.create(student);
       counter++;
       bar1.update(counter);

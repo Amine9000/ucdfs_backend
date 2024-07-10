@@ -4,6 +4,7 @@ export class CreateStudentDto {
   student_lname: string;
   student_cne: string;
   student_cin: string;
+  student_pwd: string;
   student_birthdate: string;
   modules: string[];
 }
