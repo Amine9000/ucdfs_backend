@@ -10,7 +10,22 @@ export class RolesService {
   constructor(
     @InjectRepository(Role)
     private readonly rolesRepo: Repository<Role>,
-  ) {}
+  ) {
+    this.defaultRoles();
+  }
+  async defaultRoles() {
+    const roles = [{ role_name: 'students-manager' }, { role_name: 'admin' }];
+
+    for (const roleDto of roles) {
+      try {
+        await this.create(roleDto);
+      } catch (error) {
+        if (error.status !== HttpStatus.BAD_REQUEST) {
+          throw error;
+        }
+      }
+    }
+  }
 
   async create(createRoleDto: CreateRoleDto) {
     const existsRole = await this.rolesRepo.findOne({
@@ -18,13 +33,13 @@ export class RolesService {
     });
     if (existsRole)
       throw new HttpException(
-        'a role with name already exists.',
+        `A role with this name {${existsRole.role_name}} already exists.`,
         HttpStatus.BAD_REQUEST,
       );
 
     const role = this.rolesRepo.create({ ...createRoleDto });
     await this.rolesRepo.save(role);
-    return { message: `New role has been deleted successfully.` };
+    return { message: `New role has been created successfully.` };
   }
 
   findAll() {

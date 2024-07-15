@@ -262,6 +262,12 @@ export class StudentsService {
       relations: ['modules', 'modules.etapes'],
     });
   }
+  findStudentByCne(cne: string) {
+    return this.studentsRepo.findOne({
+      where: { student_cne: cne },
+      relations: ['modules', 'modules.etapes'],
+    });
+  }
 
   update(id: number, updateStudentDto: UpdateStudentDto) {
     return { id, updateStudentDto };

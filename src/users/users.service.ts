@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,11 +11,31 @@ import { saltOrRounds } from './constants/bcrypt';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
     private readonly rolesService: RolesService,
   ) {}
+
+  async onModuleInit() {
+    await this.defaultUsers();
+  }
+
+  async defaultUsers() {
+    const user = new CreateUserDto();
+    user.user_avatar_path = 'avatars/default.jpeg';
+    user.user_email = 'amine3@gmail.com';
+    user.user_fname = 'Amine';
+    user.user_lname = 'Bbd';
+    user.user_roles = ['students-manager', 'admin'];
+    await this.create(user).catch((error) => {
+      if (error.status !== HttpStatus.BAD_REQUEST) {
+        throw error;
+      }
+    });
+  }
   async create(createUserDto: CreateUserDto) {
     const ExistingUser = await this.usersRepo.findOne({
       where: { user_email: createUserDto.user_email },
@@ -29,16 +49,26 @@ export class UsersService {
     const { user_roles, ...rest } = createUserDto;
     const user = this.usersRepo.create({ ...rest });
     user.roles = await this.rolesService.findByNames(user_roles);
+
+    if (!user.roles.length) {
+      throw new HttpException(
+        `One or more roles are invalid: ${user_roles.join(', ')}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const password = passwordGenerator.generate({
       length: 10,
       numbers: true,
     });
     user.user_password = await bcrypt.hash(password, saltOrRounds);
     await this.usersRepo.save(user);
-    return {
+    const message = {
       message: `New user has been created successfully.`,
       user_password: password,
     };
+    this.logger.verbose(message);
+    return message;
   }
 
   findAll() {

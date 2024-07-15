@@ -36,6 +36,9 @@ export class Student {
   @Column({ default: false, type: 'boolean' })
   is_first_login: boolean;
 
+  @Column({ default: 'avatars/default.jpeg' })
+  student_avatar_path: string;
+
   @ManyToMany(() => Unit, (etape) => etape.students)
   @JoinTable({
     name: 'students_modules',

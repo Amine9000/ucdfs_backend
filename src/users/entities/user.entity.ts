@@ -24,7 +24,7 @@ export class User {
   @Column()
   user_password: string;
 
-  @Column()
+  @Column({ default: 'avatars/default.jpeg' })
   user_avatar_path: string;
 
   @ManyToMany(() => Role, (role) => role.users)

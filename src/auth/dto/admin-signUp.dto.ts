@@ -1,4 +1,4 @@
-export class SignUpDto {
+export class AdminSignUpDto {
   user_fname: string;
   user_lname: string;
   user_email: string;

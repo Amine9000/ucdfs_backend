@@ -91,16 +91,39 @@ export class EtapesService {
         'Date Naissance': rest.student_birthdate,
       };
       allModules.forEach((mod) => {
-        nStd[mod.module_code] = 'NI';
+        nStd[this.abbreviateCourseName(mod.module_name)] = 'NI';
       });
       modules.forEach((mod) => {
         if (mod_codes.has(mod.module_code)) {
-          nStd[mod.module_code] = 'I';
+          nStd[this.abbreviateCourseName(mod.module_name)] = 'I';
         }
       });
       studentsData.push(nStd);
     });
     return studentsData;
+  }
+
+  abbreviateCourseName(courseName: string) {
+    courseName = courseName.replace(/[^0-9a-zA-Z ]/g, '');
+    const words = courseName.split(' ');
+    const excludedWords = ['de', 'la', 'et', 'le', 'les', 'des'];
+    const index = words.findIndex((word) => !isNaN(parseFloat(word)));
+    if (index !== -1) {
+      return words.slice(0, index + 1).join(' ');
+    } else {
+      let wordCount = 0;
+      let end = 0;
+      for (let i = 0; i < words.length; i++) {
+        if (!excludedWords.includes(words[i])) wordCount++;
+        if (wordCount == 2) {
+          end = i;
+          break;
+        }
+      }
+      return words.length <= 2
+        ? words.join(' ')
+        : words.slice(0, end + 1).join(' ');
+    }
   }
 
   async search(search_query: string, skip: number, take: number) {
