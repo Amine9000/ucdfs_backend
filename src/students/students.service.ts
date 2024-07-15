@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,6 +6,8 @@ import { Student } from './entities/student.entity';
 import { In, Repository } from 'typeorm';
 import { ModulesService } from 'src/modules/modules.service';
 import { Etape } from 'src/etapes/entities/etape.entity';
+import * as bcrypt from 'bcrypt';
+import { saltOrRounds } from 'src/users/constants/bcrypt';
 
 @Injectable()
 export class StudentsService {
@@ -269,11 +271,63 @@ export class StudentsService {
     });
   }
 
-  update(id: number, updateStudentDto: UpdateStudentDto) {
-    return { id, updateStudentDto };
+  async update(cne: string, updateStudentDto: UpdateStudentDto) {
+    const student = await this.studentsRepo.findOne({
+      where: { student_cne: cne },
+    });
+    if (student) {
+      if (updateStudentDto.student_pwd) {
+        if (!this.validatePassword(updateStudentDto.student_pwd))
+          student.student_pwd = await bcrypt.hash(
+            student.student_pwd,
+            saltOrRounds,
+          );
+        throw new HttpException(
+          'Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number and one special character',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (updateStudentDto.student_fname) {
+        student.student_fname = updateStudentDto.student_fname;
+      }
+      if (updateStudentDto.student_lname)
+        student.student_lname = updateStudentDto.student_lname;
+      if (updateStudentDto.student_cne)
+        student.student_cne = updateStudentDto.student_cne;
+      if (updateStudentDto.student_cin)
+        student.student_cin = updateStudentDto.student_cin;
+      if (updateStudentDto.student_birthdate)
+        student.student_birthdate = new Date(
+          updateStudentDto.student_birthdate,
+        );
+      if (updateStudentDto.student_code)
+        student.student_code = updateStudentDto.student_code;
+      if (updateStudentDto.is_first_login)
+        student.is_first_login = updateStudentDto.is_first_login;
+
+      await this.studentsRepo.update({ student_cne: cne }, student);
+      return {
+        message: 'Student updated successfully',
+      };
+    }
+  }
+  validatePassword(student_pwd: string) {
+    return student_pwd.length > 8;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} student`;
+  async removeByCne(cne: string) {
+    const student = this.studentsRepo.findOne({ where: { student_cne: cne } });
+    if (student) {
+      await this.studentsRepo.delete({ student_cne: cne });
+      const message = {
+        message: `Student with cne ${cne} has been deleted`,
+      };
+      return message;
+    } else {
+      const message = {
+        message: `Student with cne ${cne} does not exist`,
+      };
+      return message;
+    }
   }
 }

@@ -40,11 +40,11 @@ export class FilesService {
       await this.saveModules(modules);
       await this.saveStudents(students);
       await this.deleteFile(file.path);
-      return this.preparePassordsFile(file, originalStudents);
+      return this.preparePasswordsFile(file, originalStudents);
     }
   }
 
-  async preparePassordsFile(file: Express.Multer.File, students: any[]) {
+  async preparePasswordsFile(file: Express.Multer.File, students: any[]) {
     const dirPath = join(__dirname, '..', '..', '..', 'downloads');
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath);

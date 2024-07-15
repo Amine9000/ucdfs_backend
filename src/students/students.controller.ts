@@ -96,13 +96,16 @@ export class StudentsController {
     return this.studentsService.findOne(cne);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStudentDto: UpdateStudentDto) {
-    return this.studentsService.update(+id, updateStudentDto);
+  @Patch(':cne')
+  update(
+    @Param('cne') cne: string,
+    @Body() updateStudentDto: UpdateStudentDto,
+  ) {
+    return this.studentsService.update(cne, updateStudentDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.studentsService.remove(+id);
+  @Delete(':cne')
+  removeByCne(@Param('cne') cne: string) {
+    return this.studentsService.removeByCne(cne);
   }
 }
