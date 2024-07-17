@@ -35,17 +35,16 @@ export class FilesService {
       const modules = this.getAllModulesByEtape(data);
       const students = this.getStudents(data);
 
-      const endTime = Date.now();
-      const processingTime = endTime - startTime;
-
-      this.logger.log(`Processing time for create method: ${processingTime}ms`);
-      const originalStudents = JSON.parse(JSON.stringify(students));
-
       await this.saveEtapes(etapes);
       await this.saveModules(modules);
       await this.saveStudents(students);
       await this.deleteFile(file.path);
 
+      const endTime = Date.now();
+      const processingTime = endTime - startTime;
+
+      this.logger.log(`Processing time for create method: ${processingTime}ms`);
+      const originalStudents = JSON.parse(JSON.stringify(students));
       return this.preparePasswordsFile(file, originalStudents);
     }
   }
@@ -177,33 +176,40 @@ export class FilesService {
 
   async saveEtapes(etapes: CreateEtapeDto[]) {
     this.logger.log('SAVING ETAPES TO THE DATABASE.');
-    for (const etape of etapes) {
-      await this.etapesService.create(etape);
-    }
+    await this.etapesService.createBulk(etapes);
   }
 
   async saveModules(modules: Record<string, CreateModuleDto[]>) {
     this.logger.log('SAVING MODULES TO THE DATABASE.');
     const keys = Object.keys(modules);
-    for (const key of keys) {
-      for (const mod of modules[key]) {
-        await this.modulesService.create({
-          ...mod,
-          etape_codes: [key],
-        });
-      }
-    }
+    keys.forEach(async (key) => {
+      const mods = modules[key];
+      await this.modulesService.createBulk(
+        mods.map((mod) => ({ ...mod, etape_codes: [key] })),
+      );
+    });
+    // for (const key of keys) {
+    //   for (const mod of modules[key]) {
+    //     await this.modulesService.create({
+    //       ...mod,
+    //       etape_codes: [key],
+    //     });
+    //   }
+    // }
+    // await this.modulesService.createBulk(modules);
   }
 
   async saveStudents(students: CreateStudentDto[]) {
     this.logger.log('SAVING STUDENTS TO THE DATABASE.');
-    for (const student of students) {
-      student.student_pwd = await bcrypt.hash(
-        student.student_pwd,
-        saltOrRounds,
-      );
-      await this.studentsService.create(student);
-    }
+    students = await Promise.all(
+      students.map(async (std) => {
+        return {
+          ...std,
+          student_pwd: await bcrypt.hash(std.student_pwd, saltOrRounds),
+        };
+      }),
+    );
+    await this.studentsService.createBulk(students);
   }
 
   async getStudentsValidationFiles(etape_code: string, groupNum: number) {

@@ -73,4 +73,25 @@ export class ModulesService {
   remove(id: number) {
     return `This action removes a #${id} module`;
   }
+  async createBulk(modules: CreateModuleDto[]) {
+    const moduleCodes = modules.map((mod) => mod.module_code);
+    const existingModules = this.unitRepo.find({
+      where: { module_code: In(moduleCodes) },
+    });
+    const existingModuleCodes = (await existingModules).map(
+      (mod) => mod.module_code,
+    );
+    const newModuleCodes = modules.filter(
+      (mod) => !existingModuleCodes.includes(mod.module_code),
+    );
+    const moduleEntities = await Promise.all(
+      newModuleCodes.map(async (mod) => {
+        return this.unitRepo.create({
+          ...mod,
+          etapes: await this.etapeService.findByEtapeCode(mod.etape_codes),
+        });
+      }),
+    );
+    return this.unitRepo.save(moduleEntities);
+  }
 }

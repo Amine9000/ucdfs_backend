@@ -160,4 +160,8 @@ export class EtapesService {
   remove(id: number) {
     return `This action removes a #${id} etape`;
   }
+
+  createBulk(etapes: CreateEtapeDto[]) {
+    return this.etapeRepo.save(etapes);
+  }
 }

@@ -330,4 +330,40 @@ export class StudentsService {
       return message;
     }
   }
+
+  async createBulk(students: CreateStudentDto[]) {
+    const cneList = students.map((student) => student.student_cne);
+    const cinList = students.map((student) => student.student_cin);
+
+    // Query existing students by cne or cin
+    const existingStudents = await this.studentsRepo.find({
+      where: [{ student_cne: In(cneList) }, { student_cin: In(cinList) }],
+    });
+
+    // Filter out students that already exist in the database
+    const existingCneSet = new Set(
+      existingStudents.map((student) => student.student_cne),
+    );
+    const existingCinSet = new Set(
+      existingStudents.map((student) => student.student_cin),
+    );
+
+    const filteredStudents = students.filter(
+      (student) =>
+        !existingCneSet.has(student.student_cne) &&
+        !existingCinSet.has(student.student_cin),
+    );
+    const entites = await Promise.all(
+      filteredStudents.map(async (std) => {
+        const { modules, ...rest } = std;
+        const modulesEntities = await this.modulesService.findByIds(modules);
+        const stdEntity = this.studentsRepo.create(rest);
+        stdEntity.modules = modulesEntities;
+        return stdEntity;
+      }),
+    );
+
+    // Perform bulk insertion of filtered students
+    await this.studentsRepo.save(entites);
+  }
 }
