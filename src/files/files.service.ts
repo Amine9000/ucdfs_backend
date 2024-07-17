@@ -13,7 +13,6 @@ import * as fs from 'fs';
 import { v4 } from 'uuid';
 import { archiveFolder } from 'zip-lib';
 import { rimrafSync } from 'rimraf';
-import * as cliProgress from 'cli-progress';
 import * as passwordGenerator from 'generate-password';
 import * as bcrypt from 'bcrypt';
 import { saltOrRounds } from 'src/users/constants/bcrypt';
@@ -36,17 +35,16 @@ export class FilesService {
       const modules = this.getAllModulesByEtape(data);
       const students = this.getStudents(data);
 
+      const endTime = Date.now();
+      const processingTime = endTime - startTime;
+
+      this.logger.log(`Processing time for create method: ${processingTime}ms`);
       const originalStudents = JSON.parse(JSON.stringify(students));
 
       await this.saveEtapes(etapes);
       await this.saveModules(modules);
       await this.saveStudents(students);
       await this.deleteFile(file.path);
-
-      const endTime = Date.now();
-      const processingTime = endTime - startTime;
-
-      this.logger.log(`Processing time for create method: ${processingTime}ms`);
 
       return this.preparePasswordsFile(file, originalStudents);
     }
@@ -104,12 +102,6 @@ export class FilesService {
   getStudents(data: FileColumnsNames[]) {
     this.logger.log('EXTRACTING STUDENTS FROM THE DATA.');
     const groupedData: Record<string, any> = {};
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(data.length, 0);
-    let counter = 0;
     for (const record of data) {
       if (record) {
         const { COD_ELP, ...rest } = record;
@@ -130,10 +122,7 @@ export class FilesService {
         }
         groupedData[key]['modules'].add(COD_ELP);
       }
-      counter++;
-      bar1.update(counter);
     }
-    bar1.stop();
     return Object.values(groupedData).map((etd) => ({
       ...etd,
       student_pwd: passwordGenerator.generate({
@@ -153,12 +142,6 @@ export class FilesService {
     }));
     const etapesSet = {};
     const moduleEtapeCodesSet = new Set<string>();
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(allModules.length, 0);
-    let counter = 0;
     for (let i = 0; i < allModules.length; i++) {
       const mod = allModules[i];
       const key = mod['etape_code'];
@@ -172,10 +155,7 @@ export class FilesService {
         });
         moduleEtapeCodesSet.add(key + '-' + mod['module_code']);
       }
-      counter++;
-      bar1.update(counter);
     }
-    bar1.stop();
     return etapesSet;
   }
 
@@ -183,12 +163,6 @@ export class FilesService {
     this.logger.log('EXTRACTING ETAPES FROM THE DATA.');
     const etapesSet = new Set<string>();
     const etapes: CreateEtapeDto[] = [];
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(data.length, 0);
-    let counter = 0;
     data.forEach((record) => {
       if (!etapesSet.has(record['CODE_ETAPE'])) {
         etapes.push({
@@ -197,38 +171,20 @@ export class FilesService {
         });
         etapesSet.add(record['CODE_ETAPE']);
       }
-      counter++;
-      bar1.update(counter);
     });
-    bar1.stop();
     return etapes;
   }
 
   async saveEtapes(etapes: CreateEtapeDto[]) {
     this.logger.log('SAVING ETAPES TO THE DATABASE.');
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(etapes.length, 0);
-    let counter = 0;
     for (const etape of etapes) {
       await this.etapesService.create(etape);
-      counter++;
-      bar1.update(counter);
     }
-    bar1.stop();
   }
 
   async saveModules(modules: Record<string, CreateModuleDto[]>) {
     this.logger.log('SAVING MODULES TO THE DATABASE.');
     const keys = Object.keys(modules);
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(keys.length, 0);
-    let counter = 0;
     for (const key of keys) {
       for (const mod of modules[key]) {
         await this.modulesService.create({
@@ -236,30 +192,18 @@ export class FilesService {
           etape_codes: [key],
         });
       }
-      counter++;
-      bar1.update(counter);
     }
-    bar1.stop();
   }
 
   async saveStudents(students: CreateStudentDto[]) {
     this.logger.log('SAVING STUDENTS TO THE DATABASE.');
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(students.length, 0);
-    let counter = 0;
     for (const student of students) {
       student.student_pwd = await bcrypt.hash(
         student.student_pwd,
         saltOrRounds,
       );
       await this.studentsService.create(student);
-      counter++;
-      bar1.update(counter);
     }
-    bar1.stop();
   }
 
   async getStudentsValidationFiles(etape_code: string, groupNum: number) {
