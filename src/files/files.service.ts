@@ -29,6 +29,8 @@ export class FilesService {
   ) {}
   async create(file: Express.Multer.File) {
     if (file) {
+      const startTime = Date.now();
+
       const data = this.readFile(file.path);
       const etapes = this.getAllEtapes(data);
       const modules = this.getAllModulesByEtape(data);
@@ -40,6 +42,12 @@ export class FilesService {
       await this.saveModules(modules);
       await this.saveStudents(students);
       await this.deleteFile(file.path);
+
+      const endTime = Date.now();
+      const processingTime = endTime - startTime;
+
+      this.logger.log(`Processing time for create method: ${processingTime}ms`);
+
       return this.preparePasswordsFile(file, originalStudents);
     }
   }
@@ -143,8 +151,8 @@ export class FilesService {
       module_code: record['COD_ELP'],
       module_name: record['LIB_ELP'],
     }));
-    const modulesSets = {};
-    // const moduleCodesSet = new Set<string>();
+    const etapesSet = {};
+    const moduleEtapeCodesSet = new Set<string>();
     const bar1 = new cliProgress.SingleBar(
       {},
       cliProgress.Presets.shades_classic,
@@ -154,21 +162,21 @@ export class FilesService {
     for (let i = 0; i < allModules.length; i++) {
       const mod = allModules[i];
       const key = mod['etape_code'];
-      if (!modulesSets[key]) {
-        modulesSets[key] = [];
+      if (!etapesSet[key]) {
+        etapesSet[key] = [];
       }
-      // if (!moduleCodesSet.has(mod['module_code'])) {
-      modulesSets[key].push({
-        module_code: mod['module_code'],
-        module_name: mod['module_name'],
-      });
-      // moduleCodesSet.add(mod['module_code']);
-      // }
+      if (!moduleEtapeCodesSet.has(key + '-' + mod['module_code'])) {
+        etapesSet[key].push({
+          module_code: mod['module_code'],
+          module_name: mod['module_name'],
+        });
+        moduleEtapeCodesSet.add(key + '-' + mod['module_code']);
+      }
       counter++;
       bar1.update(counter);
     }
     bar1.stop();
-    return modulesSets;
+    return etapesSet;
   }
 
   getAllEtapes(data: FileColumnsNames[]): CreateEtapeDto[] {
