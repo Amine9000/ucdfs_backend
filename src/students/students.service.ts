@@ -353,17 +353,33 @@ export class StudentsService {
         !existingCneSet.has(student.student_cne) &&
         !existingCinSet.has(student.student_cin),
     );
-    const entites = await Promise.all(
+    const entities = await Promise.all(
       filteredStudents.map(async (std) => {
         const { modules, ...rest } = std;
         const modulesEntities = await this.modulesService.findByIds(modules);
-        const stdEntity = this.studentsRepo.create(rest);
+        const stdEntity = this.studentsRepo.create({
+          ...rest,
+          student_cin: rest.student_cin ? rest.student_cin : null,
+        });
         stdEntity.modules = modulesEntities;
         return stdEntity;
       }),
     );
 
+    const stdNum = entities.length;
+    const bulkSize = 1000;
+    const bulksNum = Math.floor(stdNum / bulkSize);
+    for (let i = 0; i < bulksNum; i++) {
+      const bulk = entities.slice(i * bulkSize, (i + 1) * bulkSize);
+      await this.studentsRepo.save(bulk);
+    }
+
+    // Handle any remaining entities that weren't covered by the full bulks
+    const remainingEntities = entities.slice(bulksNum * bulkSize);
+    if (remainingEntities.length > 0) {
+      await this.studentsRepo.save(remainingEntities);
+    }
+
     // Perform bulk insertion of filtered students
-    await this.studentsRepo.save(entites);
   }
 }

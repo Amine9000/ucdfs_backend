@@ -24,7 +24,7 @@ export class Student {
   @Column({ unique: true })
   student_cne: string;
 
-  @Column({ unique: true, nullable: true })
+  @Column({ nullable: true })
   student_cin: string;
 
   @Column({ type: 'date' })

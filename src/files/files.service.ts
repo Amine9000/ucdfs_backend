@@ -31,9 +31,12 @@ export class FilesService {
       const startTime = Date.now();
 
       const data = this.readFile(file.path);
-      const etapes = this.getAllEtapes(data);
-      const modules = this.getAllModulesByEtape(data);
-      const students = this.getStudents(data);
+
+      // const etapes = this.getAllEtapes(data);
+      // const modules = this.getAllModulesByEtape(data);
+      // const students = this.getStudents(data);
+
+      const [etapes, modules, students] = this.getAllData(data);
 
       await this.saveEtapes(etapes);
       await this.saveModules(modules);
@@ -43,7 +46,10 @@ export class FilesService {
       const endTime = Date.now();
       const processingTime = endTime - startTime;
 
-      this.logger.log(`Processing time for create method: ${processingTime}ms`);
+      // log time in minutes
+      this.logger.log(
+        `The file has been processed in ${processingTime / 60000} minutes`,
+      );
       const originalStudents = JSON.parse(JSON.stringify(students));
       return this.preparePasswordsFile(file, originalStudents);
     }
@@ -174,20 +180,88 @@ export class FilesService {
     return etapes;
   }
 
+  getAllData(data: FileColumnsNames[]): [any, any, any] {
+    const etapesSet = new Set<string>();
+    const etapes: CreateEtapeDto[] = [];
+
+    const etapeModuleSets = {};
+
+    const groupedData: Record<string, any> = {};
+
+    data.forEach(
+      ({
+        CODE_ETAPE,
+        VERSION_ETAPE,
+        COD_ELP,
+        LIB_ELP,
+        CNE,
+        CIN,
+        PRENOM,
+        NOM,
+        DATE_NAISSANCE,
+        CODE_ETUDIANT,
+      }) => {
+        // etapes
+        if (!etapesSet.has(CODE_ETAPE)) {
+          etapes.push({
+            etape_code: CODE_ETAPE,
+            etape_name: VERSION_ETAPE,
+          });
+          etapesSet.add(CODE_ETAPE);
+        }
+
+        // modules
+        let key = COD_ELP;
+        if (!etapeModuleSets[key]) {
+          etapeModuleSets[key] = {
+            module_code: COD_ELP,
+            module_name: LIB_ELP,
+            etape_codes: [CODE_ETAPE],
+          };
+        } else {
+          if (!etapeModuleSets[key].etape_codes.includes(CODE_ETAPE))
+            etapeModuleSets[key].etape_codes.push(CODE_ETAPE);
+        }
+
+        // students
+
+        key = CNE + '-' + (CIN ?? '');
+        if (!groupedData[key]) {
+          groupedData[key] = {
+            student_code: CODE_ETUDIANT,
+            student_fname: PRENOM,
+            student_lname: NOM,
+            student_cne: CNE,
+            student_cin: CIN,
+            student_birthdate: DATE_NAISSANCE,
+          };
+          groupedData[key]['modules'] = new Set<string>();
+        }
+        groupedData[key]['modules'].add(COD_ELP);
+      },
+    );
+
+    const students = Object.values(groupedData).map((etd) => ({
+      ...etd,
+      student_pwd: passwordGenerator.generate({
+        length: 10,
+        numbers: true,
+      }),
+      modules: Array.from(etd['modules']),
+    }));
+
+    return [etapes, Object.values(etapeModuleSets), students];
+  }
+
   async saveEtapes(etapes: CreateEtapeDto[]) {
     this.logger.log('SAVING ETAPES TO THE DATABASE.');
     await this.etapesService.createBulk(etapes);
   }
 
-  async saveModules(modules: Record<string, CreateModuleDto[]>) {
+  async saveModules(modules: CreateModuleDto[]) {
     this.logger.log('SAVING MODULES TO THE DATABASE.');
-    const keys = Object.keys(modules);
-    keys.forEach(async (key) => {
-      const mods = modules[key];
-      await this.modulesService.createBulk(
-        mods.map((mod) => ({ ...mod, etape_codes: [key] })),
-      );
-    });
+    await this.modulesService.createBulk(modules);
+
     // for (const key of keys) {
     //   for (const mod of modules[key]) {
     //     await this.modulesService.create({

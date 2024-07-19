@@ -75,20 +75,23 @@ export class ModulesService {
   }
   async createBulk(modules: CreateModuleDto[]) {
     const moduleCodes = modules.map((mod) => mod.module_code);
-    const existingModules = this.unitRepo.find({
+
+    const existingModules = await this.unitRepo.find({
       where: { module_code: In(moduleCodes) },
     });
-    const existingModuleCodes = (await existingModules).map(
-      (mod) => mod.module_code,
-    );
+
+    const existingModuleCodes = existingModules.map((mod) => mod.module_code);
+
     const newModuleCodes = modules.filter(
       (mod) => !existingModuleCodes.includes(mod.module_code),
     );
+
     const moduleEntities = await Promise.all(
       newModuleCodes.map(async (mod) => {
+        const etapes = await this.etapeService.findByEtapeCode(mod.etape_codes);
         return this.unitRepo.create({
           ...mod,
-          etapes: await this.etapeService.findByEtapeCode(mod.etape_codes),
+          etapes,
         });
       }),
     );
