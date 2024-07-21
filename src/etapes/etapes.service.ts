@@ -145,6 +145,10 @@ export class EtapesService {
     return this.transformData(data);
   }
 
+  findAllEtapes() {
+    return this.etapeRepo.find();
+  }
+
   findByEtapeCode(etape_codes: string[]) {
     return this.etapeRepo.find({ where: { etape_code: In(etape_codes) } });
   }
@@ -157,11 +161,16 @@ export class EtapesService {
     return { id, updateEtapeDto };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} etape`;
-  }
-
   createBulk(etapes: CreateEtapeDto[]) {
     return this.etapeRepo.save(etapes);
+  }
+
+  remove(etape_code: string) {
+    const etape = this.etapeRepo.findOne({ where: { etape_code } });
+    if (!etape)
+      return {
+        message: 'Etape not found',
+      };
+    return this.etapeRepo.delete({ etape_code });
   }
 }

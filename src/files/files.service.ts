@@ -307,6 +307,7 @@ export class FilesService {
     const zipPath = this.saveGroupsAsZipFile(groups, etape_code);
     return zipPath;
   }
+
   async saveGroupsAsZipFile(groups: any[], etape_code: string) {
     const dirPath = join(__dirname, '..', '..', '..', 'downloads');
     if (!fs.existsSync(dirPath)) {
@@ -355,7 +356,48 @@ export class FilesService {
     return groups;
   }
 
+  async getStudentsValidationFilesByEtapes(
+    etape_codes: string[],
+    groupNum: number,
+  ) {
+    const data = [];
+
+    for (let i = 0; i < etape_codes.length; i++) {
+      const etape_code = etape_codes[i];
+      data.push(
+        ...(await this.etapesService.studentsValidationByEtape(etape_code)),
+      );
+    }
+
+    // groups number validation
+    if (groupNum == 0)
+      return new HttpException(
+        'number of groups is Zero.',
+        HttpStatus.BAD_REQUEST,
+      );
+
+    if (groupNum > data.length)
+      return new HttpException(
+        'number of groups is greater than number of studnets.',
+        HttpStatus.BAD_REQUEST,
+      );
+
+    const groups = this.devideData(data, groupNum);
+
+    const zipPath = this.saveGroupsAsZipFile(groups, etape_codes.join('-'));
+    return zipPath;
+  }
+
   async saveToFile(data: object[], path: string) {
+    // fill empty cells
+    data = data.map((row) => {
+      const newRow = {};
+      for (const key in row) {
+        console.log(row[key]);
+        newRow[key] = row[key] || '--';
+      }
+      return newRow;
+    });
     // Convert JSON to worksheet
     const worksheet = xlsx.utils.json_to_sheet(data);
 

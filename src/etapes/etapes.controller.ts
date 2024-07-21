@@ -15,6 +15,8 @@ import { CreateEtapeDto } from './dto/create-etape.dto';
 import { UpdateEtapeDto } from './dto/update-etape.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Role } from 'src/auth/enums/Role.enum';
+import { Roles } from 'src/auth/Decorators/role.decorator';
 
 @Controller('etapes')
 @UseGuards(AuthGuard, RolesGuard)
@@ -24,6 +26,12 @@ export class EtapesController {
   @Post()
   create(@Body() createEtapeDto: CreateEtapeDto) {
     return this.etapesService.create(createEtapeDto);
+  }
+
+  @Roles(Role.Admin)
+  @Get('all')
+  findAllEtapes() {
+    return this.etapesService.findAllEtapes();
   }
 
   @Get()
@@ -59,8 +67,8 @@ export class EtapesController {
     return this.etapesService.update(+id, updateEtapeDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.etapesService.remove(+id);
+  @Delete(':etape_code')
+  remove(@Param('etape_code') etape_code: string) {
+    return this.etapesService.remove(etape_code);
   }
 }
