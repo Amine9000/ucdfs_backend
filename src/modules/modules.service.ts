@@ -44,7 +44,14 @@ export class ModulesService {
   }
 
   findAll() {
-    return `This action returns all modules`;
+    return this.unitRepo.find();
+  }
+
+  async findBySemester(etape_code: string) {
+    const etapes = await this.etapeService.findByEtapeCode([etape_code]);
+    return this.unitRepo.find({
+      where: { etapes: etapes },
+    });
   }
 
   findOne(id: number) {

@@ -34,6 +34,11 @@ export class ModulesController {
     return this.modulesService.findOne(+id);
   }
 
+  @Get('/all/:etape_code')
+  findBySemester(@Param('etape_code') etape_code: string) {
+    return this.modulesService.findBySemester(etape_code);
+  }
+
   @Patch(':id')
   update(
     @Param('id') module_code: string,
