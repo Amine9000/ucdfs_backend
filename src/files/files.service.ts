@@ -16,6 +16,7 @@ import { rimrafSync } from 'rimraf';
 import * as passwordGenerator from 'generate-password';
 import * as bcrypt from 'bcrypt';
 import { saltOrRounds } from 'src/users/constants/bcrypt';
+import { StudentsFileService } from './students-file.service';
 
 @Injectable()
 export class FilesService {
@@ -25,6 +26,7 @@ export class FilesService {
     private readonly etapesService: EtapesService,
     private readonly modulesService: ModulesService,
     private readonly studentsService: StudentsService,
+    private readonly studentsFileService: StudentsFileService,
   ) {}
   async create(file: Express.Multer.File) {
     if (file) {
@@ -53,6 +55,10 @@ export class FilesService {
       const originalStudents = JSON.parse(JSON.stringify(students));
       return this.preparePasswordsFile(file, originalStudents);
     }
+  }
+
+  studentsFile(file: Express.Multer.File, modules: string[]) {
+    return this.studentsFileService.store(file, modules);
   }
 
   async preparePasswordsFile(file: Express.Multer.File, students: any[]) {

@@ -63,6 +63,38 @@ export class FilesController {
     return new StreamableFile(fileStream);
   }
 
+  @Post('students')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: resolve('../uploads'),
+        filename: (req, file, callback) => {
+          const extName = extname(file.originalname);
+          const filename =
+            file.originalname.split('.')[0] + '-' + v4() + extName;
+          callback(null, filename);
+        },
+      }),
+    }),
+  )
+  async studentsFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('modules') modules: string,
+  ) {
+    return this.filesService.studentsFile(file, JSON.parse(modules));
+    // const fileStream = createReadStream(file_path);
+
+    // fileStream.on('end', () => {
+    //   fs.unlink(file_path, (err) => {
+    //     if (err) {
+    //       this.logger.error(err.message);
+    //     }
+    //   });
+    // });
+
+    // return new StreamableFile(fileStream);
+  }
+
   @Post('/download/etapes')
   async getStudentsValidationFilesByEtapes(
     @Body('etape_codes') etape_codes: string[],
