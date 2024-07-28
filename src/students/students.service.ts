@@ -8,6 +8,7 @@ import { ModulesService } from 'src/modules/modules.service';
 import { Etape } from 'src/etapes/entities/etape.entity';
 import * as bcrypt from 'bcrypt';
 import { saltOrRounds } from 'src/users/constants/bcrypt';
+import { Unit } from 'src/modules/entities/unit.entity';
 
 @Injectable()
 export class StudentsService {
@@ -42,7 +43,13 @@ export class StudentsService {
           }
 
           const modulesEntities = await this.modulesService.findByIds(modules);
-          const student = this.studentsRepo.create({ ...studentDto });
+          const student = this.studentsRepo.create({
+            ...studentDto,
+            student_pwd: await bcrypt.hash(
+              studentDto.student_pwd,
+              saltOrRounds,
+            ),
+          });
           student.modules = modulesEntities;
           return await transactionalEntityManager.save(student);
         },
@@ -258,11 +265,40 @@ export class StudentsService {
     return studentsData;
   }
 
-  findOne(cne: string) {
-    return this.studentsRepo.findOne({
-      where: { student_cne: cne },
+  async findOne(code: string) {
+    const studentData = await this.studentsRepo.findOne({
+      where: { student_code: code },
       relations: ['modules', 'modules.etapes'],
     });
+    if (!studentData) return null;
+
+    const modules = studentData.modules;
+    const etapes = {};
+
+    const etapePromises = modules.map(async (mod) => {
+      const modEtapePromises = mod.etapes.map(async (etape) => {
+        const etapeEntity = await this.etapesRepo.findOne({
+          where: { etape_code: etape.etape_code },
+          relations: ['modules'],
+        });
+        if (!etapes[etape.etape_code]) {
+          etapes[etape.etape_code] = {
+            semester_code: etape.etape_code,
+            semester_name: etape.etape_name,
+            modules: etapeEntity.modules.map((m) => ({ ...m, status: 'NI' })),
+          };
+        }
+        etapes[etape.etape_code].modules = etapes[etape.etape_code].modules.map(
+          (m: Unit) => {
+            return m.module_code == mod.module_code ? { ...m, status: 'I' } : m;
+          },
+        );
+      });
+      await Promise.all(modEtapePromises);
+    });
+
+    await Promise.all(etapePromises);
+    return Object.values(etapes);
   }
   findStudentByCne(cne: string) {
     return this.studentsRepo.findOne({
@@ -359,6 +395,7 @@ export class StudentsService {
         const modulesEntities = await this.modulesService.findByIds(modules);
         const stdEntity = this.studentsRepo.create({
           ...rest,
+          student_pwd: await bcrypt.hash(rest.student_pwd, saltOrRounds),
           student_cin: rest.student_cin ? rest.student_cin : null,
         });
         stdEntity.modules = modulesEntities;

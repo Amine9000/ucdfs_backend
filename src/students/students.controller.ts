@@ -91,9 +91,9 @@ export class StudentsController {
     return data;
   }
 
-  @Get(':cne')
-  findOne(@Param('cne') cne: string) {
-    return this.studentsService.findOne(cne);
+  @Get(':code')
+  findOne(@Param('code') code: string) {
+    return this.studentsService.findOne(code);
   }
 
   @Patch(':cne')
