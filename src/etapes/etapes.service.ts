@@ -29,6 +29,11 @@ export class EtapesService {
       skip: skip,
       take: take,
     });
+    console.log(
+      data.map((d) =>
+        d.modules.map((m) => ({ ...m, stdCount: m.students.length })),
+      ),
+    );
     return this.transformData(data);
   }
 
@@ -50,11 +55,11 @@ export class EtapesService {
   }
 
   countStudentsByEtape(modules: Unit[]) {
-    const CNEs = new Set<string>();
-    modules.forEach((mod) =>
-      mod.students.forEach((std) => CNEs.add(std.student_cne)),
-    );
-    return CNEs.size;
+    let count = 0;
+    modules.forEach((mod) => {
+      count += mod.students.length;
+    });
+    return count;
   }
 
   async studentsValidationByEtape(etape_code: string) {
