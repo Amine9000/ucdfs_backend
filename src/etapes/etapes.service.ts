@@ -29,11 +29,6 @@ export class EtapesService {
       skip: skip,
       take: take,
     });
-    console.log(
-      data.map((d) =>
-        d.modules.map((m) => ({ ...m, stdCount: m.students.length })),
-      ),
-    );
     return this.transformData(data);
   }
 
@@ -170,12 +165,15 @@ export class EtapesService {
     return this.etapeRepo.save(etapes);
   }
 
-  remove(etape_code: string) {
-    const etape = this.etapeRepo.findOne({ where: { etape_code } });
+  async remove(etape_code: string) {
+    const etape = await this.etapeRepo.findOne({
+      where: { etape_code },
+      relations: ['modules'],
+    });
     if (!etape)
       return {
         message: 'Etape not found',
       };
-    return this.etapeRepo.delete({ etape_code });
+    return this.etapeRepo.remove(etape);
   }
 }

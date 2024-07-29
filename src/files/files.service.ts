@@ -399,7 +399,6 @@ export class FilesService {
     data = data.map((row) => {
       const newRow = {};
       for (const key in row) {
-        console.log(row[key]);
         newRow[key] = row[key] || '--';
       }
       return newRow;
