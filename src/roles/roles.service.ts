@@ -10,7 +10,8 @@ export class RolesService {
   constructor(
     @InjectRepository(Role)
     private readonly rolesRepo: Repository<Role>,
-  ) {
+  ) {}
+  async onModuleInit() {
     this.defaultRoles();
   }
   async defaultRoles() {

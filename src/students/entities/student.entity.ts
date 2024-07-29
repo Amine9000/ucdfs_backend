@@ -21,10 +21,10 @@ export class Student {
   @Column()
   student_lname: string;
 
-  @Column({ unique: true })
+  @Column({ nullable: true })
   student_cne: string;
 
-  @Column({ unique: true, nullable: true })
+  @Column({ nullable: true })
   student_cin: string;
 
   @Column({ type: 'date' })
@@ -39,7 +39,10 @@ export class Student {
   @Column({ default: 'avatars/default.jpeg' })
   student_avatar_path: string;
 
-  @ManyToMany(() => Unit, (etape) => etape.students)
+  @ManyToMany(() => Unit, (etape) => etape.students, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   @JoinTable({
     name: 'students_modules',
     joinColumn: {

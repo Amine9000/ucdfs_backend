@@ -50,11 +50,11 @@ export class EtapesService {
   }
 
   countStudentsByEtape(modules: Unit[]) {
-    const CNEs = new Set<string>();
-    modules.forEach((mod) =>
-      mod.students.forEach((std) => CNEs.add(std.student_cne)),
-    );
-    return CNEs.size;
+    let count = 0;
+    modules.forEach((mod) => {
+      count += mod.students.length;
+    });
+    return count;
   }
 
   async studentsValidationByEtape(etape_code: string) {
@@ -145,6 +145,10 @@ export class EtapesService {
     return this.transformData(data);
   }
 
+  findAllEtapes() {
+    return this.etapeRepo.find();
+  }
+
   findByEtapeCode(etape_codes: string[]) {
     return this.etapeRepo.find({ where: { etape_code: In(etape_codes) } });
   }
@@ -157,7 +161,19 @@ export class EtapesService {
     return { id, updateEtapeDto };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} etape`;
+  createBulk(etapes: CreateEtapeDto[]) {
+    return this.etapeRepo.save(etapes);
+  }
+
+  async remove(etape_code: string) {
+    const etape = await this.etapeRepo.findOne({
+      where: { etape_code },
+      relations: ['modules'],
+    });
+    if (!etape)
+      return {
+        message: 'Etape not found',
+      };
+    return this.etapeRepo.remove(etape);
   }
 }

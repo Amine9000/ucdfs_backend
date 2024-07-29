@@ -44,7 +44,14 @@ export class ModulesService {
   }
 
   findAll() {
-    return `This action returns all modules`;
+    return this.unitRepo.find();
+  }
+
+  async findBySemester(etape_code: string) {
+    const etapes = await this.etapeService.findByEtapeCode([etape_code]);
+    return this.unitRepo.find({
+      where: { etapes: etapes },
+    });
   }
 
   findOne(id: number) {
@@ -72,5 +79,29 @@ export class ModulesService {
 
   remove(id: number) {
     return `This action removes a #${id} module`;
+  }
+  async createBulk(modules: CreateModuleDto[]) {
+    const moduleCodes = modules.map((mod) => mod.module_code);
+
+    const existingModules = await this.unitRepo.find({
+      where: { module_code: In(moduleCodes) },
+    });
+
+    const existingModuleCodes = existingModules.map((mod) => mod.module_code);
+
+    const newModuleCodes = modules.filter(
+      (mod) => !existingModuleCodes.includes(mod.module_code),
+    );
+
+    const moduleEntities = await Promise.all(
+      newModuleCodes.map(async (mod) => {
+        const etapes = await this.etapeService.findByEtapeCode(mod.etape_codes);
+        return this.unitRepo.create({
+          ...mod,
+          etapes,
+        });
+      }),
+    );
+    return this.unitRepo.save(moduleEntities);
   }
 }

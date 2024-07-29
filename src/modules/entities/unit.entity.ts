@@ -10,7 +10,10 @@ export class Unit {
   @Column()
   module_name: string;
 
-  @ManyToMany(() => Etape, (etape) => etape.modules)
+  @ManyToMany(() => Etape, (etape) => etape.modules, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   @JoinTable({
     name: 'modules_etapes',
     joinColumn: {

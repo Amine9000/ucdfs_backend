@@ -15,7 +15,7 @@ import { StudentsModule } from 'src/students/students.module';
     JwtModule.register({
       global: true,
       secret: jwtConstants.secret,
-      signOptions: { expiresIn: '60m' },
+      signOptions: { expiresIn: '1d' },
     }),
   ],
   controllers: [AuthController],

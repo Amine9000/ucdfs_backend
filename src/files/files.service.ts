@@ -13,10 +13,10 @@ import * as fs from 'fs';
 import { v4 } from 'uuid';
 import { archiveFolder } from 'zip-lib';
 import { rimrafSync } from 'rimraf';
-import * as cliProgress from 'cli-progress';
 import * as passwordGenerator from 'generate-password';
 import * as bcrypt from 'bcrypt';
 import { saltOrRounds } from 'src/users/constants/bcrypt';
+import { StudentsFileService } from './students-file.service';
 
 @Injectable()
 export class FilesService {
@@ -26,17 +26,19 @@ export class FilesService {
     private readonly etapesService: EtapesService,
     private readonly modulesService: ModulesService,
     private readonly studentsService: StudentsService,
+    private readonly studentsFileService: StudentsFileService,
   ) {}
   async create(file: Express.Multer.File) {
     if (file) {
       const startTime = Date.now();
 
       const data = this.readFile(file.path);
-      const etapes = this.getAllEtapes(data);
-      const modules = this.getAllModulesByEtape(data);
-      const students = this.getStudents(data);
 
-      const originalStudents = JSON.parse(JSON.stringify(students));
+      // const etapes = this.getAllEtapes(data);
+      // const modules = this.getAllModulesByEtape(data);
+      // const students = this.getStudents(data);
+
+      const [etapes, modules, students] = this.getAllData(data);
 
       await this.saveEtapes(etapes);
       await this.saveModules(modules);
@@ -46,10 +48,17 @@ export class FilesService {
       const endTime = Date.now();
       const processingTime = endTime - startTime;
 
-      this.logger.log(`Processing time for create method: ${processingTime}ms`);
-
+      // log time in minutes
+      this.logger.log(
+        `The file has been processed in ${processingTime / 60000} minutes`,
+      );
+      const originalStudents = JSON.parse(JSON.stringify(students));
       return this.preparePasswordsFile(file, originalStudents);
     }
+  }
+
+  studentsFile(file: Express.Multer.File, modules: string[]) {
+    return this.studentsFileService.store(file, modules);
   }
 
   async preparePasswordsFile(file: Express.Multer.File, students: any[]) {
@@ -104,12 +113,6 @@ export class FilesService {
   getStudents(data: FileColumnsNames[]) {
     this.logger.log('EXTRACTING STUDENTS FROM THE DATA.');
     const groupedData: Record<string, any> = {};
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(data.length, 0);
-    let counter = 0;
     for (const record of data) {
       if (record) {
         const { COD_ELP, ...rest } = record;
@@ -130,10 +133,7 @@ export class FilesService {
         }
         groupedData[key]['modules'].add(COD_ELP);
       }
-      counter++;
-      bar1.update(counter);
     }
-    bar1.stop();
     return Object.values(groupedData).map((etd) => ({
       ...etd,
       student_pwd: passwordGenerator.generate({
@@ -153,12 +153,6 @@ export class FilesService {
     }));
     const etapesSet = {};
     const moduleEtapeCodesSet = new Set<string>();
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(allModules.length, 0);
-    let counter = 0;
     for (let i = 0; i < allModules.length; i++) {
       const mod = allModules[i];
       const key = mod['etape_code'];
@@ -172,10 +166,7 @@ export class FilesService {
         });
         moduleEtapeCodesSet.add(key + '-' + mod['module_code']);
       }
-      counter++;
-      bar1.update(counter);
     }
-    bar1.stop();
     return etapesSet;
   }
 
@@ -183,12 +174,6 @@ export class FilesService {
     this.logger.log('EXTRACTING ETAPES FROM THE DATA.');
     const etapesSet = new Set<string>();
     const etapes: CreateEtapeDto[] = [];
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(data.length, 0);
-    let counter = 0;
     data.forEach((record) => {
       if (!etapesSet.has(record['CODE_ETAPE'])) {
         etapes.push({
@@ -197,69 +182,114 @@ export class FilesService {
         });
         etapesSet.add(record['CODE_ETAPE']);
       }
-      counter++;
-      bar1.update(counter);
     });
-    bar1.stop();
     return etapes;
+  }
+
+  getAllData(data: FileColumnsNames[]): [any, any, any] {
+    const etapesSet = new Set<string>();
+    const etapes: CreateEtapeDto[] = [];
+
+    const etapeModuleSets = {};
+
+    const groupedData: Record<string, any> = {};
+
+    data.forEach(
+      ({
+        CODE_ETAPE,
+        VERSION_ETAPE,
+        COD_ELP,
+        LIB_ELP,
+        CNE,
+        CIN,
+        PRENOM,
+        NOM,
+        DATE_NAISSANCE,
+        CODE_ETUDIANT,
+      }) => {
+        // etapes
+        if (!etapesSet.has(CODE_ETAPE)) {
+          etapes.push({
+            etape_code: CODE_ETAPE,
+            etape_name: VERSION_ETAPE,
+          });
+          etapesSet.add(CODE_ETAPE);
+        }
+
+        // modules
+        let key = COD_ELP;
+        if (!etapeModuleSets[key]) {
+          etapeModuleSets[key] = {
+            module_code: COD_ELP,
+            module_name: LIB_ELP,
+            etape_codes: [CODE_ETAPE],
+          };
+        } else {
+          if (!etapeModuleSets[key].etape_codes.includes(CODE_ETAPE))
+            etapeModuleSets[key].etape_codes.push(CODE_ETAPE);
+        }
+
+        // students
+
+        key = CNE + '-' + (CIN ?? '');
+        if (!groupedData[key]) {
+          groupedData[key] = {
+            student_code: CODE_ETUDIANT,
+            student_fname: PRENOM,
+            student_lname: NOM,
+            student_cne: CNE,
+            student_cin: CIN,
+            student_birthdate: DATE_NAISSANCE,
+          };
+          groupedData[key]['modules'] = new Set<string>();
+        }
+        groupedData[key]['modules'].add(COD_ELP);
+      },
+    );
+
+    const students = Object.values(groupedData).map((etd) => ({
+      ...etd,
+      student_pwd: passwordGenerator.generate({
+        length: 10,
+        numbers: true,
+      }),
+      modules: Array.from(etd['modules']),
+    }));
+
+    return [etapes, Object.values(etapeModuleSets), students];
   }
 
   async saveEtapes(etapes: CreateEtapeDto[]) {
     this.logger.log('SAVING ETAPES TO THE DATABASE.');
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(etapes.length, 0);
-    let counter = 0;
-    for (const etape of etapes) {
-      await this.etapesService.create(etape);
-      counter++;
-      bar1.update(counter);
-    }
-    bar1.stop();
+    await this.etapesService.createBulk(etapes);
   }
 
-  async saveModules(modules: Record<string, CreateModuleDto[]>) {
+  async saveModules(modules: CreateModuleDto[]) {
     this.logger.log('SAVING MODULES TO THE DATABASE.');
-    const keys = Object.keys(modules);
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
-    );
-    bar1.start(keys.length, 0);
-    let counter = 0;
-    for (const key of keys) {
-      for (const mod of modules[key]) {
-        await this.modulesService.create({
-          ...mod,
-          etape_codes: [key],
-        });
-      }
-      counter++;
-      bar1.update(counter);
-    }
-    bar1.stop();
+    await this.modulesService.createBulk(modules);
+
+    // for (const key of keys) {
+    //   for (const mod of modules[key]) {
+    //     await this.modulesService.create({
+    //       ...mod,
+    //       etape_codes: [key],
+    //     });
+    //   }
+    // }
+    // await this.modulesService.createBulk(modules);
   }
 
   async saveStudents(students: CreateStudentDto[]) {
     this.logger.log('SAVING STUDENTS TO THE DATABASE.');
-    const bar1 = new cliProgress.SingleBar(
-      {},
-      cliProgress.Presets.shades_classic,
+    students = await Promise.all(
+      students.map(async (std) => {
+        return {
+          ...std,
+          student_pwd: await bcrypt.hash(std.student_pwd, saltOrRounds),
+        };
+      }),
     );
-    bar1.start(students.length, 0);
-    let counter = 0;
-    for (const student of students) {
-      student.student_pwd = await bcrypt.hash(
-        student.student_pwd,
-        saltOrRounds,
-      );
-      await this.studentsService.create(student);
-      counter++;
-      bar1.update(counter);
-    }
-    bar1.stop();
+    await this.studentsService.createBulk(students);
   }
 
   async getStudentsValidationFiles(etape_code: string, groupNum: number) {
@@ -283,6 +313,7 @@ export class FilesService {
     const zipPath = this.saveGroupsAsZipFile(groups, etape_code);
     return zipPath;
   }
+
   async saveGroupsAsZipFile(groups: any[], etape_code: string) {
     const dirPath = join(__dirname, '..', '..', '..', 'downloads');
     if (!fs.existsSync(dirPath)) {
@@ -331,7 +362,47 @@ export class FilesService {
     return groups;
   }
 
+  async getStudentsValidationFilesByEtapes(
+    etape_codes: string[],
+    groupNum: number,
+  ) {
+    const data = [];
+
+    for (let i = 0; i < etape_codes.length; i++) {
+      const etape_code = etape_codes[i];
+      data.push(
+        ...(await this.etapesService.studentsValidationByEtape(etape_code)),
+      );
+    }
+
+    // groups number validation
+    if (groupNum == 0)
+      return new HttpException(
+        'number of groups is Zero.',
+        HttpStatus.BAD_REQUEST,
+      );
+
+    if (groupNum > data.length)
+      return new HttpException(
+        'number of groups is greater than number of studnets.',
+        HttpStatus.BAD_REQUEST,
+      );
+
+    const groups = this.devideData(data, groupNum);
+
+    const zipPath = this.saveGroupsAsZipFile(groups, etape_codes.join('-'));
+    return zipPath;
+  }
+
   async saveToFile(data: object[], path: string) {
+    // fill empty cells
+    data = data.map((row) => {
+      const newRow = {};
+      for (const key in row) {
+        newRow[key] = row[key] || '--';
+      }
+      return newRow;
+    });
     // Convert JSON to worksheet
     const worksheet = xlsx.utils.json_to_sheet(data);
 
