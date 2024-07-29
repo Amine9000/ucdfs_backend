@@ -49,7 +49,6 @@ export class UsersService {
     const { user_roles, ...rest } = createUserDto;
     const user = this.usersRepo.create({ ...rest });
     user.roles = await this.rolesService.findByNames(user_roles);
-
     if (!user.roles.length) {
       throw new HttpException(
         `One or more roles are invalid: ${user_roles.join(', ')}`,
@@ -67,7 +66,14 @@ export class UsersService {
       message: `New user has been created successfully.`,
       user_password: password,
     };
-    this.logger.verbose(message);
+    console.log(
+      '\n+----------------------------------------------------------------------+\n',
+    );
+    console.log('Email : ' + user.user_email);
+    console.log('Password : ' + password);
+    console.log(
+      '\n+----------------------------------------------------------------------+\n',
+    );
     return message;
   }
 
