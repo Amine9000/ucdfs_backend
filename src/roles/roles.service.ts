@@ -11,9 +11,6 @@ export class RolesService {
     @InjectRepository(Role)
     private readonly rolesRepo: Repository<Role>,
   ) {}
-  async onModuleInit() {
-    this.defaultRoles();
-  }
   async defaultRoles() {
     const roles = [{ role_name: 'students-manager' }, { role_name: 'admin' }];
 

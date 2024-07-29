@@ -20,6 +20,7 @@ export class UsersService {
   ) {}
 
   async onModuleInit() {
+    await this.rolesService.defaultRoles();
     await this.defaultUsers();
   }
 
