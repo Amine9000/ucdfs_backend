@@ -31,6 +31,7 @@ if (!fs.existsSync(publicDir)) {
     }),
     ServeStaticModule.forRoot({
       rootPath: publicDir,
+      serveRoot: '/static',
       exclude: ['/api/(.*)'],
     }),
     EtapesModule,
