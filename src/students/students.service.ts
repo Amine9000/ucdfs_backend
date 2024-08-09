@@ -290,7 +290,9 @@ export class StudentsService {
         }
         etapes[etape.etape_code].modules = etapes[etape.etape_code].modules.map(
           (m: Unit) => {
-            return m.module_code == mod.module_code ? { ...m, status: 'I' } : m;
+            return m.module_code == mod.module_code
+              ? { nom: m.module_name, status: 'I' }
+              : { nom: m.module_name, status: 'NI' };
           },
         );
       });

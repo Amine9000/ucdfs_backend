@@ -78,8 +78,19 @@ export class UsersService {
     return message;
   }
 
-  findAll() {
-    return this.usersRepo.find();
+  async findAll() {
+    const users = await this.usersRepo.find({
+      relations: ['roles'],
+    });
+    return users.map((user) => {
+      return {
+        avatar: user.user_avatar_path,
+        nom: user.user_lname,
+        prenom: user.user_fname,
+        email: user.user_email,
+        roles: user.roles.map((role) => role.role_name),
+      };
+    });
   }
 
   findOne(id: string) {
