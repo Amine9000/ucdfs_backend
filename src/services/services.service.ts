@@ -51,16 +51,8 @@ export class ServicesService {
     if (!Array.isArray(createServiceDto.fields))
       throw new Error('description is required');
   }
-
-  findAllServiceFields() {
-    return this.serviceFieldsRepo.find();
-  }
   findAllServices() {
     return this.serviceRepo.find({ relations: ['fields'] });
-  }
-
-  findOneServiceField(id: string) {
-    return this.serviceFieldsRepo.findOne({ where: { id } });
   }
   findOneService(id: string) {
     return this.serviceRepo.findOne({ where: { id }, relations: ['fields'] });

@@ -20,14 +20,9 @@ export class ServicesController {
     return this.servicesService.createService(createServiceDto);
   }
 
-  @Get('service')
+  @Get()
   findAllServices() {
     return this.servicesService.findAllServices();
-  }
-
-  @Get('servicefield')
-  findAllServiceFields() {
-    return this.servicesService.findAllServiceFields();
   }
 
   @Get('service/:id')
@@ -41,11 +36,6 @@ export class ServicesController {
     @Body() updateServiceDto: UpdateServiceDto,
   ) {
     return this.servicesService.updateService(id, updateServiceDto);
-  }
-
-  @Get('servicefield/:id')
-  findOneServiceField(@Param('id') id: string) {
-    return this.servicesService.findOneServiceField(id);
   }
 
   @Delete('service/:id')
