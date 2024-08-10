@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ServicesModule } from './services/services.module';
 import * as fs from 'fs';
 
 const publicDir = join(__dirname, '..', 'public');
@@ -41,6 +42,7 @@ if (!fs.existsSync(publicDir)) {
     StudentsModule,
     UsersModule,
     AuthModule,
+    ServicesModule,
   ],
   controllers: [],
   providers: [],
