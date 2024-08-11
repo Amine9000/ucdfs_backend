@@ -51,9 +51,21 @@ export class ServicesService {
     if (!Array.isArray(createServiceDto.fields))
       throw new Error('description is required');
   }
+
   findAllServices() {
     return this.serviceRepo.find({ relations: ['fields'] });
   }
+
+  searchServices(q: string) {
+    return this.serviceRepo
+      .createQueryBuilder('service')
+      .where(
+        '(service.name LIKE :search_query OR service.description LIKE :search_query)',
+        { search_query: `%${q}%` },
+      )
+      .getMany();
+  }
+
   findOneService(id: string) {
     return this.serviceRepo.findOne({ where: { id }, relations: ['fields'] });
   }

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -23,6 +24,11 @@ export class ServicesController {
   @Get()
   findAllServices() {
     return this.servicesService.findAllServices();
+  }
+
+  @Get('search')
+  searchServices(@Query('q') q: string) {
+    return this.servicesService.searchServices(q);
   }
 
   @Get('service/:id')
