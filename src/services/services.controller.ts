@@ -31,12 +31,12 @@ export class ServicesController {
     return this.servicesService.searchServices(q);
   }
 
-  @Get('service/:id')
+  @Get(':id')
   findOneService(@Param('id') id: string) {
     return this.servicesService.findOneService(id);
   }
 
-  @Patch('service/:id')
+  @Patch(':id')
   updateService(
     @Param('id') id: string,
     @Body() updateServiceDto: UpdateServiceDto,
@@ -44,7 +44,7 @@ export class ServicesController {
     return this.servicesService.updateService(id, updateServiceDto);
   }
 
-  @Delete('service/:id')
+  @Delete(':id')
   removeService(@Param('id') id: string) {
     return this.servicesService.removeService(id);
   }

@@ -34,11 +34,13 @@ export class ServicesService {
   }
 
   async createFields(fields: Field[]) {
-    const serviceFields = fields.map((field) => {
-      return this.serviceFieldsRepo.create({ ...field });
-    });
-    await this.serviceFieldsRepo.save(serviceFields);
-    return serviceFields;
+    if (fields) {
+      const serviceFields = fields.map((field) => {
+        return this.serviceFieldsRepo.create({ ...field });
+      });
+      await this.serviceFieldsRepo.save(serviceFields);
+      return serviceFields;
+    }
   }
 
   validateServiceDto(createServiceDto: CreateServiceDto) {
@@ -77,7 +79,11 @@ export class ServicesService {
     await this.removeServiceField(service.fields);
     const fields = await this.createFields(updateServiceDto.fields);
     service.fields = fields;
-    this.serviceRepo.update(id, service);
+
+    service.name = updateServiceDto.name;
+    service.description = updateServiceDto.description;
+
+    this.serviceRepo.save(service);
   }
 
   removeService(id: string) {
