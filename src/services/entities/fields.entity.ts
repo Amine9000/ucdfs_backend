@@ -21,6 +21,8 @@ export class ServiceFields {
   @Column({ default: true })
   required: boolean;
 
-  @ManyToOne(() => Service, (service) => service.fields)
+  @ManyToOne(() => Service, (service) => service.fields, {
+    onDelete: 'CASCADE',
+  })
   service: Service;
 }
