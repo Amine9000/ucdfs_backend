@@ -1,9 +1,11 @@
 import { Unit } from 'src/modules/entities/unit.entity';
+import { StudentService } from 'src/services/entities/student-service.entity';
 import {
   Column,
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -38,6 +40,9 @@ export class Student {
 
   @Column({ default: 'avatars/default.jpeg' })
   student_avatar_path: string;
+
+  @OneToMany(() => StudentService, (stdService) => stdService.student)
+  services: StudentService[];
 
   @ManyToMany(() => Unit, (etape) => etape.students, {
     cascade: true,
