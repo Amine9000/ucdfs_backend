@@ -13,21 +13,26 @@ import { UpdateDemandeDto } from './dto/update-demande.dto';
 
 @Controller('demandes')
 export class DemandesController {
-  constructor(private readonly servicesService: DemandesService) {}
+  constructor(private readonly demandeService: DemandesService) {}
 
   @Post()
   createService(@Body() createServiceDto: CreateDemandeDto) {
-    return this.servicesService.createDemande(createServiceDto);
+    return this.demandeService.createDemande(createServiceDto);
   }
 
   @Get()
   findAllServices() {
-    return this.servicesService.findAllDemandes();
+    return this.demandeService.findAllDemandes();
+  }
+
+  @Get('student/:cne')
+  findOneDemandeBystdCNE(@Param('cne') cne: string) {
+    return this.demandeService.findAllDemandesByStdCNE(cne);
   }
 
   @Get(':id')
   findOneService(@Param('id') id: string) {
-    return this.servicesService.findOneDemande(id);
+    return this.demandeService.findOneDemande(id);
   }
 
   @Patch(':id')
@@ -35,11 +40,11 @@ export class DemandesController {
     @Param('id') id: string,
     @Body() updateServiceDto: UpdateDemandeDto,
   ) {
-    return this.servicesService.updateDemande(id, updateServiceDto);
+    return this.demandeService.updateDemande(id, updateServiceDto);
   }
 
   @Delete(':id')
   removeService(@Param('id') id: string) {
-    return this.servicesService.removeDemande(id);
+    return this.demandeService.removeDemande(id);
   }
 }

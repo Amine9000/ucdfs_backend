@@ -75,11 +75,11 @@ export class AuthService {
         roles: ['student'],
       };
       delete student.student_pwd;
-      delete student.id;
 
       return {
         access_token: await this.jwtService.signAsync(payload),
         user: {
+          user_id: student.id,
           user_fname: student.student_fname,
           user_lname: student.student_lname,
           user_cne: student.student_cne,

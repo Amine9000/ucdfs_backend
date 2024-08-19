@@ -11,8 +11,9 @@ import { StudentServiceData } from './student-service-data.entity';
 
 export enum State {
   IN_PROGRESS = 'in Progress',
-  COMPLETED = 'completed',
+  COMPLETED = 'approved',
   PENDING = 'pending',
+  REJECTED = 'rejected',
 }
 
 @Entity({ name: 'student_service' })

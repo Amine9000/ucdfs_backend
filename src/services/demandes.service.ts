@@ -67,6 +67,29 @@ export class DemandesService {
     await this.stdServiceDataRepo.save(studentServiceData);
   }
 
+  async findAllDemandesByStdCNE(cne: string) {
+    const student = await this.studentRepo.findOne({
+      where: { student_cne: cne },
+    });
+
+    if (!student) {
+      throw new NotFoundException('Student not found');
+    }
+
+    const studentServices = await this.stdServiceRepo.find({
+      where: { student: { id: student.id } },
+      relations: [
+        'student',
+        'service',
+        'service.fields',
+        'studentServiceData',
+        'studentServiceData.field',
+      ],
+    });
+
+    return studentServices;
+  }
+
   findAllDemandes() {
     return this.stdServiceRepo.find({
       relations: [
