@@ -17,11 +17,11 @@ export class StudentsFileService {
     let data = this.readFile(file.path);
     this.deleteFile(file.path);
     data = data.map((d) => ({ ...d, modules: modules }));
-    this.saveStudents(data);
+    this.saveStudents(data, modules);
     return data;
   }
-  async saveStudents(data: CreateStudentDto[]) {
-    return this.studentsService.createBulk(data);
+  async saveStudents(data: CreateStudentDto[], modules: string[]) {
+    return this.studentsService.createBulkByMod(data, modules);
   }
 
   readFile(path: string): CreateStudentDto[] {

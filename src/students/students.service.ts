@@ -421,4 +421,76 @@ export class StudentsService {
 
     // Perform bulk insertion of filtered students
   }
+
+  async createBulkByMod(students: CreateStudentDto[], modules: string[]) {
+    const cneList = students.map((student) => student.student_cne);
+    const cinList = students.map((student) => student.student_cin);
+
+    // Query existing students by cne or cin
+    const existingStudents = await this.studentsRepo.find({
+      where: [{ student_cne: In(cneList) }, { student_cin: In(cinList) }],
+    });
+
+    // Filter out students that already exist in the database
+    const existingCneSet = new Set(
+      existingStudents.map((student) => student.student_cne),
+    );
+    const existingCinSet = new Set(
+      existingStudents.map((student) => student.student_cin),
+    );
+
+    const filteredStudents = students.filter(
+      (student) =>
+        !existingCneSet.has(student.student_cne) &&
+        !existingCinSet.has(student.student_cin),
+    );
+    const modulesEntities = await this.modulesService.findByIds(modules);
+    const entities = await Promise.all(
+      filteredStudents.map(async (std) => {
+        const { modules, ...rest } = std;
+        const stdEntity = this.studentsRepo.create({
+          ...rest,
+          student_pwd: await bcrypt.hash(rest.student_pwd, saltOrRounds),
+          student_cin: rest.student_cin ? rest.student_cin : null,
+        });
+        stdEntity.modules = modulesEntities;
+        return stdEntity;
+      }),
+    );
+
+    const updatedEntities = await Promise.all(
+      existingStudents.map(async (std) => {
+        const existingModuleCodes = new Set(
+          std.modules.map((mod) => mod.module_code),
+        );
+        const newModules = await this.modulesService.findByIds(modules);
+        const uniqueNewModules = newModules.filter(
+          (mod) => !existingModuleCodes.has(mod.module_code),
+        );
+
+        // Only add the unique new modules
+        if (uniqueNewModules.length > 0) {
+          std.modules.push(...uniqueNewModules);
+        }
+        return std;
+      }),
+    );
+    entities.push(...updatedEntities);
+
+    const stdNum = entities.length;
+    const bulkSize = 1000;
+    const bulksNum = Math.floor(stdNum / bulkSize);
+    for (let i = 0; i < bulksNum; i++) {
+      const bulk = entities.slice(i * bulkSize, (i + 1) * bulkSize);
+      await this.studentsRepo.save(bulk);
+    }
+
+    // Handle any remaining entities that weren't covered by the full bulks
+    const remainingEntities = entities.slice(bulksNum * bulkSize);
+    if (remainingEntities.length > 0) {
+      await this.studentsRepo.save(remainingEntities);
+    }
+
+    // Perform bulk insertion of filtered students
+  }
 }
