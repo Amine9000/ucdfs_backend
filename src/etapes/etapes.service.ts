@@ -50,11 +50,15 @@ export class EtapesService {
   }
 
   countStudentsByEtape(modules: Unit[]) {
-    let count = 0;
+    const studentSet = new Set<string>();
+
     modules.forEach((mod) => {
-      count += mod.students.length;
+      mod.students.forEach((student) => {
+        studentSet.add(student.id);
+      });
     });
-    return count;
+
+    return studentSet.size;
   }
 
   async studentsValidationByEtape(etape_code: string) {
