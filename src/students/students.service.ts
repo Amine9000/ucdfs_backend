@@ -74,6 +74,7 @@ export class StudentsService {
       .getMany();
 
     const data = students.map((student) => ({
+      id: student.id,
       Code: student.student_code,
       Prenom: student.student_fname,
       Nom: student.student_lname,
@@ -309,9 +310,9 @@ export class StudentsService {
     });
   }
 
-  async update(cne: string, updateStudentDto: UpdateStudentDto) {
+  async update(id: string, updateStudentDto: UpdateStudentDto) {
     const student = await this.studentsRepo.findOne({
-      where: { student_cne: cne },
+      where: { id },
     });
     if (student) {
       if (updateStudentDto.student_pwd) {
@@ -343,7 +344,7 @@ export class StudentsService {
       if (updateStudentDto.is_first_login)
         student.is_first_login = updateStudentDto.is_first_login;
 
-      await this.studentsRepo.update({ student_cne: cne }, student);
+      await this.studentsRepo.update({ id }, student);
       return {
         message: 'Student updated successfully',
       };

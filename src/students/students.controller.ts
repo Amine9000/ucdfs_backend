@@ -96,12 +96,9 @@ export class StudentsController {
     return this.studentsService.findOne(code);
   }
 
-  @Patch(':cne')
-  update(
-    @Param('cne') cne: string,
-    @Body() updateStudentDto: UpdateStudentDto,
-  ) {
-    return this.studentsService.update(cne, updateStudentDto);
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateStudentDto: UpdateStudentDto) {
+    return this.studentsService.update(id, updateStudentDto);
   }
 
   @Delete(':cne')
