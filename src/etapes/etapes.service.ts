@@ -180,4 +180,32 @@ export class EtapesService {
       };
     return this.etapeRepo.remove(etape);
   }
+
+  async mergeBranches(
+    etape_codes: string[],
+    branchName: string,
+    codeBranch: string,
+  ) {
+    const etapes = await this.etapeRepo.find({
+      where: {
+        etape_code: In(etape_codes),
+      },
+      relations: ['modules'],
+    });
+    const modules_codes = new Set<string>();
+    const modules: Unit[] = [];
+    etapes.forEach((etape) => {
+      etape.modules.forEach((module) => {
+        if (!modules_codes.has(module.module_code)) modules.push(module);
+        modules_codes.add(module.module_code);
+      });
+    });
+    const newEtape = this.etapeRepo.create({
+      etape_code: codeBranch,
+      etape_name: branchName,
+    });
+    newEtape.modules = modules;
+    this.etapeRepo.save(newEtape);
+    return this.findAll(0, 10);
+  }
 }

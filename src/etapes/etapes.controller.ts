@@ -14,12 +14,13 @@ import { EtapesService } from './etapes.service';
 import { CreateEtapeDto } from './dto/create-etape.dto';
 import { UpdateEtapeDto } from './dto/update-etape.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Role } from 'src/auth/enums/Role.enum';
+import { ROLE } from 'src/auth/enums/Role.enum';
 import { Roles } from 'src/auth/Decorators/role.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('etapes')
 @UseGuards(AuthGuard, RolesGuard)
+@Roles(ROLE.Admin)
 export class EtapesController {
   constructor(private readonly etapesService: EtapesService) {}
 
@@ -28,10 +29,23 @@ export class EtapesController {
     return this.etapesService.create(createEtapeDto);
   }
 
-  @Roles(Role.Admin)
   @Get('all')
   findAllEtapes() {
     return this.etapesService.findAllEtapes();
+  }
+
+  @Post('merge')
+  mergeBranches(
+    @Body('etape_codes') etape_codes: string[],
+    @Body('branchName') branchName: string,
+    @Body('codeBranch') codeBranch: string,
+  ) {
+    console.log('Here', branchName, codeBranch);
+    return this.etapesService.mergeBranches(
+      etape_codes,
+      branchName,
+      codeBranch,
+    );
   }
 
   @Get()

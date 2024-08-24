@@ -22,13 +22,13 @@ import { v4 } from 'uuid';
 import { createReadStream } from 'fs';
 import * as fs from 'fs';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { Role } from 'src/auth/enums/Role.enum';
+import { ROLE } from 'src/auth/enums/Role.enum';
 import { Roles } from 'src/auth/Decorators/role.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('files')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(Role.Admin)
+@Roles(ROLE.Admin)
 export class FilesController {
   private readonly logger = new Logger(FilesController.name);
 

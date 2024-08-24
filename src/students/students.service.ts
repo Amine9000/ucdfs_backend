@@ -286,21 +286,29 @@ export class StudentsService {
           etapes[etape.etape_code] = {
             semester_code: etape.etape_code,
             semester_name: etape.etape_name,
-            modules: etapeEntity.modules.map((m) => ({ ...m, status: 'NI' })),
+            modules: etapeEntity.modules
+              ? etapeEntity.modules.map((m) => {
+                  return { nom: m.module_name, status: 'NI' };
+                })
+              : [],
           };
         }
-        etapes[etape.etape_code].modules = etapes[etape.etape_code].modules.map(
-          (m: Unit) => {
-            return m.module_code == mod.module_code
-              ? { nom: m.module_name, status: 'I' }
-              : { nom: m.module_name, status: 'NI' };
-          },
-        );
+        if (etapes[etape.etape_code].modules.length > 0)
+          etapes[etape.etape_code].modules = etapes[
+            etape.etape_code
+          ].modules.map((m: { nom: string; status: string }) => {
+            return m.nom == mod.module_code
+              ? { ...m, status: 'I' }
+              : { ...m, status: 'NI' };
+          });
       });
       await Promise.all(modEtapePromises);
     });
 
     await Promise.all(etapePromises);
+    Object.values(etapes).forEach((el) => {
+      console.log(el);
+    });
     return Object.values(etapes);
   }
   findStudentByCne(cne: string) {

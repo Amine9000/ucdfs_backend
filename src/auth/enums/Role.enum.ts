@@ -1,4 +1,5 @@
-export enum Role {
+export enum ROLE {
   STUDENTS_MANAGER = 'students-manager',
   Admin = 'admin',
+  Student = 'student',
 }

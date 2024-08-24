@@ -33,11 +33,6 @@ export class FilesService {
       const startTime = Date.now();
 
       const data = this.readFile(file.path);
-
-      // const etapes = this.getAllEtapes(data);
-      // const modules = this.getAllModulesByEtape(data);
-      // const students = this.getStudents(data);
-
       const [etapes, modules, students] = this.getAllData(data);
 
       await this.saveEtapes(etapes);
