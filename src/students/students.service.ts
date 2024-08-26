@@ -8,7 +8,7 @@ import { ModulesService } from 'src/modules/modules.service';
 import { Etape } from 'src/etapes/entities/etape.entity';
 import * as bcrypt from 'bcrypt';
 import { saltOrRounds } from 'src/users/constants/bcrypt';
-import { Unit } from 'src/modules/entities/unit.entity';
+import * as passwordGenerator from 'generate-password';
 
 @Injectable()
 export class StudentsService {
@@ -288,7 +288,11 @@ export class StudentsService {
             semester_name: etape.etape_name,
             modules: etapeEntity.modules
               ? etapeEntity.modules.map((m) => {
-                  return { nom: m.module_name, status: 'NI' };
+                  return {
+                    nom: m.module_name,
+                    code: m.module_code,
+                    status: 'NI',
+                  };
                 })
               : [],
           };
@@ -296,19 +300,15 @@ export class StudentsService {
         if (etapes[etape.etape_code].modules.length > 0)
           etapes[etape.etape_code].modules = etapes[
             etape.etape_code
-          ].modules.map((m: { nom: string; status: string }) => {
-            return m.nom == mod.module_code
-              ? { ...m, status: 'I' }
-              : { ...m, status: 'NI' };
+          ].modules.map((m: { nom: string; code: string; status: string }) => {
+            // if (m.code == mod.module_code) console.log(mod.module_name);
+            return m.code == mod.module_code ? { ...m, status: 'I' } : m;
           });
       });
       await Promise.all(modEtapePromises);
     });
 
     await Promise.all(etapePromises);
-    Object.values(etapes).forEach((el) => {
-      console.log(el);
-    });
     return Object.values(etapes);
   }
   findStudentByCne(cne: string) {
@@ -501,5 +501,24 @@ export class StudentsService {
     }
 
     // Perform bulk insertion of filtered students
+  }
+
+  async regenpwd(code: string) {
+    const student = await this.studentsRepo.findOne({
+      where: { student_code: code },
+    });
+    if (!student) {
+      console.log(student);
+      return { message: 'Student not found' };
+    }
+    const salt = bcrypt.genSaltSync(10);
+    const pwd = passwordGenerator.generate({
+      length: 10,
+      numbers: true,
+    });
+    const hashedPassword = bcrypt.hashSync(pwd, salt);
+    student.student_pwd = hashedPassword;
+    await this.studentsRepo.save(student);
+    return { password: pwd, message: 'Password regenerated successfully' };
   }
 }

@@ -15,6 +15,8 @@ import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/Decorators/role.decorator';
+import { ROLE } from 'src/auth/enums/Role.enum';
 
 @Controller('students')
 @UseGuards(AuthGuard, RolesGuard)
@@ -22,16 +24,19 @@ export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
   @Post()
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   create(@Body() createStudentDto: CreateStudentDto) {
     return this.studentsService.create(createStudentDto);
   }
 
   @Get()
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   findAll() {
     return this.studentsService.findAll();
   }
 
   @Get('etape/:etape_code')
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   async findAllByEtape(
     @Param('etape_code') etape_code: string,
     @Query('skip', ParseIntPipe) skip: number,
@@ -46,6 +51,7 @@ export class StudentsController {
   }
 
   @Get('validation/:etape_code')
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   async studentsValidationByEtape(
     @Param('etape_code') etape_code: string,
     @Query('skip', ParseIntPipe) skip: number,
@@ -60,6 +66,7 @@ export class StudentsController {
   }
 
   @Get('search/:etape_code')
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   async search(
     @Param('etape_code') etape_code: string,
     @Query('q') search_query: string,
@@ -76,6 +83,7 @@ export class StudentsController {
   }
 
   @Get('search/students/:etape_code')
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   async searchStudents(
     @Param('etape_code') etape_code: string,
     @Query('q') search_query: string,
@@ -97,11 +105,18 @@ export class StudentsController {
   }
 
   @Patch(':id')
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   update(@Param('id') id: string, @Body() updateStudentDto: UpdateStudentDto) {
     return this.studentsService.update(id, updateStudentDto);
   }
+  @Patch(':code/regenpwd')
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
+  regenpwd(@Param('code') code: string) {
+    return this.studentsService.regenpwd(code);
+  }
 
   @Delete(':cne')
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   removeByCne(@Param('cne') cne: string) {
     return this.studentsService.removeByCne(cne);
   }
