@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { ServiceFields } from './entities/fields.entity';
 import { CreateDemandeDto } from './dto/create-demande.dto';
-import { StudentService } from './entities/student-service.entity';
+import { State, StudentService } from './entities/student-service.entity';
 import { StudentServiceData } from './entities/student-service-data.entity';
 import { Service } from './entities/service.entity';
 import { UpdateDemandeDto } from './dto/update-demande.dto';
@@ -138,7 +138,7 @@ export class DemandesService {
     if (!studentService) {
       throw new NotFoundException('Demande not found');
     }
-
-    await this.stdServiceRepo.remove(studentService);
+    if (studentService.state == State.PENDING)
+      await this.stdServiceRepo.remove(studentService);
   }
 }
