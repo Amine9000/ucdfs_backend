@@ -18,7 +18,16 @@ export class StudentsFileService {
     this.deleteFile(file.path);
     data = data.map((d) => ({ ...d, modules: modules }));
     this.saveStudents(data, modules);
-    return data;
+    return data.map((d) => {
+      return {
+        student_fname: d.student_fname,
+        student_lname: d.student_lname,
+        student_cne: d.student_cne,
+        student_cin: d.student_cin,
+        student_birthdate: d.student_birthdate,
+        student_pwd: d.student_pwd,
+      };
+    });
   }
   async saveStudents(data: CreateStudentDto[], modules: string[]) {
     return this.studentsService.createBulkByMod(data, modules);

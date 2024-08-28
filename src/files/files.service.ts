@@ -51,7 +51,9 @@ export class FilesService {
   }
 
   studentsFile(file: Express.Multer.File, modules: string[]) {
-    return this.studentsFileService.store(file, modules);
+    const data = this.studentsFileService.store(file, modules);
+    console.log(data);
+    return this.preparePasswordsFile(file, data);
   }
 
   async preparePasswordsFile(file: Express.Multer.File, students: any[]) {
@@ -59,7 +61,7 @@ export class FilesService {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath);
     }
-    const fileName = file.filename + '-' + v4();
+    const fileName = file.filename + '-' + v4() + '.xlsx';
 
     const filePath = join(dirPath, fileName);
 
