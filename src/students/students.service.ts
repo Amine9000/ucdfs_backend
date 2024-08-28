@@ -59,10 +59,6 @@ export class StudentsService {
     }
   }
 
-  findAll() {
-    return `This action returns all students`;
-  }
-
   async findAllByEtape(etape_code: string, skip: number, take: number) {
     const students = await this.studentsRepo
       .createQueryBuilder('student')
@@ -404,9 +400,10 @@ export class StudentsService {
       filteredStudents.map(async (std) => {
         const { modules, ...rest } = std;
         const modulesEntities = await this.modulesService.findByIds(modules);
+        const hashedPwd = await bcrypt.hash(rest.student_pwd, saltOrRounds);
         const stdEntity = this.studentsRepo.create({
           ...rest,
-          student_pwd: await bcrypt.hash(rest.student_pwd, saltOrRounds),
+          student_pwd: hashedPwd,
           student_cin: rest.student_cin ? rest.student_cin : null,
         });
         stdEntity.modules = modulesEntities;
@@ -456,11 +453,11 @@ export class StudentsService {
     const modulesEntities = await this.modulesService.findByIds(modules);
     const entities = await Promise.all(
       filteredStudents.map(async (std) => {
-        const { modules, ...rest } = std;
         const stdEntity = this.studentsRepo.create({
-          ...rest,
-          student_pwd: await bcrypt.hash(rest.student_pwd, saltOrRounds),
-          student_cin: rest.student_cin ? rest.student_cin : null,
+          ...std,
+          student_pwd: await bcrypt.hash(std.student_pwd, saltOrRounds),
+          student_cin: std.student_cin ? std.student_cin : null,
+          modules: [],
         });
         stdEntity.modules = modulesEntities;
         return stdEntity;
@@ -508,7 +505,6 @@ export class StudentsService {
       where: { student_code: code },
     });
     if (!student) {
-      console.log(student);
       return { message: 'Student not found' };
     }
     const salt = bcrypt.genSaltSync(10);
@@ -520,5 +516,26 @@ export class StudentsService {
     student.student_pwd = hashedPassword;
     await this.studentsRepo.save(student);
     return { password: pwd, message: 'Password regenerated successfully' };
+  }
+
+  async clearStudentsTable() {
+    try {
+      const students = await this.studentsRepo.find({
+        relations: ['modules'],
+      });
+      let counter = 0;
+      const range = 1000;
+
+      while (counter < students.length) {
+        const batch = students.slice(counter, counter + range);
+        await this.studentsRepo.remove(batch);
+        counter += range;
+      }
+    } catch (error) {
+      throw new HttpException(
+        'Error clearing students table',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

@@ -27,10 +27,10 @@ export class UsersService {
   async defaultUsers() {
     const user = new CreateUserDto();
     user.user_avatar_path = 'avatars/default.jpeg';
-    user.user_email = 'amine3@gmail.com';
-    user.user_fname = 'Amine';
-    user.user_lname = 'Bbd';
-    user.user_roles = ['students-manager', 'admin'];
+    user.user_email = 'admin@gmail.com';
+    user.user_fname = 'Super';
+    user.user_lname = 'Admin';
+    user.user_roles = ['admin'];
     await this.create(user).catch((error) => {
       if (error.status !== HttpStatus.BAD_REQUEST) {
         throw error;

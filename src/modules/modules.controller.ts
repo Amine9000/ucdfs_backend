@@ -47,6 +47,11 @@ export class ModulesController {
     return this.modulesService.update(module_code, updateModuleDto);
   }
 
+  @Delete('clear')
+  clearModulesTable() {
+    this.modulesService.clearModulesTable();
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.modulesService.remove(+id);

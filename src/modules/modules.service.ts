@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -103,5 +109,25 @@ export class ModulesService {
       }),
     );
     return this.unitRepo.save(moduleEntities);
+  }
+  async clearModulesTable(): Promise<void> {
+    try {
+      const units = await this.unitRepo.find({
+        relations: ['etapes'],
+      });
+      let counter = 0;
+      const range = 1000;
+
+      while (counter < units.length) {
+        const batch = units.slice(counter, counter + range);
+        await this.unitRepo.remove(batch);
+        counter += range;
+      }
+    } catch (error) {
+      throw new HttpException(
+        'Error clearing modules table',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

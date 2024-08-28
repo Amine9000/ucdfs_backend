@@ -40,7 +40,6 @@ export class EtapesController {
     @Body('branchName') branchName: string,
     @Body('codeBranch') codeBranch: string,
   ) {
-    console.log('Here', branchName, codeBranch);
     return this.etapesService.mergeBranches(
       etape_codes,
       branchName,
@@ -79,6 +78,11 @@ export class EtapesController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateEtapeDto: UpdateEtapeDto) {
     return this.etapesService.update(+id, updateEtapeDto);
+  }
+
+  @Delete('clear')
+  clearEtapesTable() {
+    this.etapesService.clearEtapesTable();
   }
 
   @Delete(':etape_code')

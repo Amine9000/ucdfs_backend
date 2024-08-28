@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateEtapeDto } from './dto/create-etape.dto';
 import { UpdateEtapeDto } from './dto/update-etape.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,6 +23,9 @@ export class EtapesService {
   }
 
   async findAll(skip: number, take: number) {
+    if (skip * take < 0) {
+      return [];
+    }
     const data = await this.etapeRepo.find({
       relations: ['modules', 'modules.students'],
       // implement pagination here
@@ -207,5 +210,24 @@ export class EtapesService {
     newEtape.modules = modules;
     this.etapeRepo.save(newEtape);
     return this.findAll(0, 10);
+  }
+
+  async clearEtapesTable(): Promise<void> {
+    try {
+      const etapes = await this.etapeRepo.find();
+      let counter = 0;
+      const range = 1000;
+
+      while (counter < etapes.length) {
+        const batch = etapes.slice(counter, counter + range);
+        await this.etapeRepo.remove(batch);
+        counter += range;
+      }
+    } catch (error) {
+      throw new HttpException(
+        'Error clearing modules table',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

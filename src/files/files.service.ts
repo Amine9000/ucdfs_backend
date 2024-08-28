@@ -242,14 +242,14 @@ export class FilesService {
       },
     );
 
-    const students = Object.values(groupedData).map((etd) => ({
-      ...etd,
-      student_pwd: passwordGenerator.generate({
-        length: 10,
-        numbers: true,
-      }),
-      modules: Array.from(etd['modules']),
-    }));
+    const students = Object.values(groupedData).map((etd, i) => {
+      const std = {
+        ...etd,
+        student_pwd: 'user1234',
+        modules: Array.from(etd['modules']),
+      };
+      return std;
+    });
 
     return [etapes, Object.values(etapeModuleSets), students];
   }

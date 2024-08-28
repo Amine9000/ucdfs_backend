@@ -18,7 +18,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('users')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(ROLE.STUDENTS_MANAGER)
+@Roles(ROLE.STUDENTS_MANAGER, ROLE.Admin)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

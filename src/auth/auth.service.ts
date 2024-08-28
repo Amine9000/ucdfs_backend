@@ -55,19 +55,19 @@ export class AuthService {
       user_avatar_path: 'avatars/default.jpeg',
     });
   }
-
   async studentSignIn(signInDto: StudentSignInDto) {
     const student = await this.studentService.findStudentByCne(signInDto.cne);
-
     if (!student)
       return new HttpException(
         `No user with the CNE : ${signInDto.cne} exists.`,
         HttpStatus.BAD_REQUEST,
       );
+
     const isSamePwd = await bcrypt.compare(
       signInDto.password,
       student.student_pwd,
     );
+
     if (isSamePwd) {
       const payload = {
         sub: student.student_cne,

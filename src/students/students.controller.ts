@@ -29,12 +29,6 @@ export class StudentsController {
     return this.studentsService.create(createStudentDto);
   }
 
-  @Get()
-  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
-  findAll() {
-    return this.studentsService.findAll();
-  }
-
   @Get('etape/:etape_code')
   @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   async findAllByEtape(
@@ -115,6 +109,11 @@ export class StudentsController {
     return this.studentsService.regenpwd(code);
   }
 
+  @Delete('clear')
+  @Roles(ROLE.Admin)
+  clearStudentsTable() {
+    return this.studentsService.clearStudentsTable();
+  }
   @Delete(':cne')
   @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
   removeByCne(@Param('cne') cne: string) {
