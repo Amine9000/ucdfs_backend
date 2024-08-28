@@ -14,8 +14,6 @@ import { v4 } from 'uuid';
 import { archiveFolder } from 'zip-lib';
 import { rimrafSync } from 'rimraf';
 import * as passwordGenerator from 'generate-password';
-import * as bcrypt from 'bcrypt';
-import { saltOrRounds } from 'src/users/constants/bcrypt';
 import { StudentsFileService } from './students-file.service';
 
 @Injectable()
@@ -242,10 +240,10 @@ export class FilesService {
       },
     );
 
-    const students = Object.values(groupedData).map((etd, i) => {
+    const students = Object.values(groupedData).map((etd) => {
       const std = {
         ...etd,
-        student_pwd: 'user1234',
+        student_pwd: '',
         modules: Array.from(etd['modules']),
       };
       return std;
@@ -262,29 +260,20 @@ export class FilesService {
   async saveModules(modules: CreateModuleDto[]) {
     this.logger.log('SAVING MODULES TO THE DATABASE.');
     await this.modulesService.createBulk(modules);
-
-    // for (const key of keys) {
-    //   for (const mod of modules[key]) {
-    //     await this.modulesService.create({
-    //       ...mod,
-    //       etape_codes: [key],
-    //     });
-    //   }
-    // }
-    // await this.modulesService.createBulk(modules);
   }
 
   async saveStudents(students: CreateStudentDto[]) {
     this.logger.log('SAVING STUDENTS TO THE DATABASE.');
-    students = await Promise.all(
+    const entities = await Promise.all(
       students.map(async (std) => {
+        std.student_pwd = std.student_cne + '@' + std.student_cin;
         return {
           ...std,
-          student_pwd: await bcrypt.hash(std.student_pwd, saltOrRounds),
+          student_pwd: std.student_pwd,
         };
       }),
     );
-    await this.studentsService.createBulk(students);
+    await this.studentsService.createBulk(entities);
   }
 
   async getStudentsValidationFiles(etape_code: string, groupNum: number) {
