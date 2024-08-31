@@ -184,4 +184,26 @@ export class UsersService {
       );
     }
   }
+
+  async regen(id: string) {
+    const user = await this.usersRepo.findOne({
+      where: { user_id: id },
+    });
+    if (!user) {
+      throw new HttpException(
+        `There is no user with this ID: ${id}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const password = passwordGenerator.generate({
+      length: 10,
+      numbers: true,
+    });
+    user.user_password = await bcrypt.hash(password, saltOrRounds);
+    await this.usersRepo.save(user);
+    return {
+      message: `Password for user with ID: ${id} has been regenerated successfully.`,
+      password,
+    };
+  }
 }

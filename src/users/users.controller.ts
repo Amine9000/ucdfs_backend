@@ -51,6 +51,10 @@ export class UsersController {
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
+  @Patch(':id/regenpwd')
+  regen(@Param('id') id: string) {
+    return this.usersService.regen(id);
+  }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
