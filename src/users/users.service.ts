@@ -43,7 +43,7 @@ export class UsersService {
     });
     if (ExistingUser)
       throw new HttpException(
-        `A USER with this EMAIL : ${createUserDto.user_email} already exists.`,
+        `A user with this email : ${createUserDto.user_email} already exists.`,
         HttpStatus.BAD_REQUEST,
       );
 
@@ -56,20 +56,28 @@ export class UsersService {
         HttpStatus.BAD_REQUEST,
       );
     }
-
-    const password = passwordGenerator.generate({
-      length: 10,
-      numbers: true,
-    });
-    user.user_password = await bcrypt.hash(password, saltOrRounds);
+    let password: string;
+    if (
+      !createUserDto.user_password ||
+      createUserDto.user_password.length == 0
+    ) {
+      password = passwordGenerator.generate({
+        length: 10,
+        numbers: true,
+      });
+      user.user_password = await bcrypt.hash(password, saltOrRounds);
+    } else {
+      password = createUserDto.user_password;
+      user.user_password = await bcrypt.hash(password, saltOrRounds);
+    }
     await this.usersRepo.save(user);
     const message = {
-      message: `New user has been created successfully.`,
-      user_password: password,
+      message: `Un nouvel utilisateur a été créé avec succès.`,
     };
-    console.log(
-      '\n+----------------------------------------------------------------------+\n',
-    );
+    if (!createUserDto.user_password || createUserDto.user_password.length == 0)
+      console.log(
+        '\n+----------------------------------------------------------------------+\n',
+      );
     console.log('Email : ' + user.user_email);
     console.log('Password : ' + password);
     console.log(
@@ -84,6 +92,7 @@ export class UsersService {
     });
     return users.map((user) => {
       return {
+        id: user.user_id,
         avatar: user.user_avatar_path,
         nom: user.user_lname,
         prenom: user.user_fname,
@@ -109,14 +118,25 @@ export class UsersService {
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.usersRepo.findOne({
       where: { user_id: id },
+      relations: ['roles'],
     });
     if (!user)
       throw new HttpException(
         `There is no user with this ID: ${id}`,
         HttpStatus.BAD_REQUEST,
       );
-
-    await this.usersRepo.update(id, { ...updateUserDto });
+    if (updateUserDto.user_avatar_path) {
+      user.user_avatar_path = updateUserDto.user_avatar_path;
+    }
+    if (updateUserDto.user_fname) user.user_fname = updateUserDto.user_fname;
+    if (updateUserDto.user_lname) user.user_lname = updateUserDto.user_lname;
+    if (updateUserDto.user_email) user.user_email = updateUserDto.user_email;
+    if (updateUserDto.user_roles) {
+      user.roles = await this.rolesService.findByNames(
+        updateUserDto.user_roles,
+      );
+    }
+    await this.usersRepo.save(user);
 
     return { message: `User with ID: ${id} has been updated successfully.` };
   }
@@ -124,6 +144,7 @@ export class UsersService {
   async remove(id: string) {
     const user = await this.usersRepo.findOne({
       where: { user_id: id },
+      relations: ['roles'],
     });
     if (!user)
       throw new HttpException(
@@ -131,8 +152,36 @@ export class UsersService {
         HttpStatus.BAD_REQUEST,
       );
 
-    await this.usersRepo.delete(id);
+    await this.usersRepo.remove(user);
 
     return { message: `User with ID: ${id} has been deleted successfully.` };
+  }
+
+  async search(q: string) {
+    try {
+      const users = await this.usersRepo
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.roles', 'role')
+        .where(
+          'user.user_fname LIKE :q OR user.user_lname LIKE :q OR user.user_email LIKE :q',
+          {
+            q: `%${q}%`,
+          },
+        )
+        .getMany();
+      return users.map((user) => ({
+        id: user.user_id,
+        avatar: user.user_avatar_path,
+        nom: user.user_lname,
+        prenom: user.user_fname,
+        email: user.user_email,
+        roles: user.roles.map((role) => role.role_name),
+      }));
+    } catch (error) {
+      throw new HttpException(
+        `Error while searching for users: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -18,7 +19,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('users')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(ROLE.STUDENTS_MANAGER, ROLE.Admin)
+@Roles(ROLE.USERS_MANAGER, ROLE.Admin)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -30,6 +31,11 @@ export class UsersController {
   @Get()
   findAll() {
     return this.usersService.findAll();
+  }
+
+  @Get('search')
+  search(@Query('q') q: string) {
+    return this.usersService.search(q);
   }
 
   @Get(':id')
