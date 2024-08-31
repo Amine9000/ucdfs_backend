@@ -4,6 +4,7 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from './entities/role.entity';
 import { In, Repository } from 'typeorm';
+import { ROLE } from 'src/auth/enums/Role.enum';
 
 @Injectable()
 export class RolesService {
@@ -12,7 +13,7 @@ export class RolesService {
     private readonly rolesRepo: Repository<Role>,
   ) {}
   async defaultRoles() {
-    const roles = [{ role_name: 'students-manager' }, { role_name: 'admin' }];
+    const roles = Object.values(ROLE).map((role) => ({ role_name: role }));
 
     for (const roleDto of roles) {
       try {
