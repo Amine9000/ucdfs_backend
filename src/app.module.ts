@@ -29,6 +29,7 @@ if (!fs.existsSync(publicDir)) {
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       logging: ['error'],
+      connectTimeout: 60000,
     }),
     ServeStaticModule.forRoot({
       rootPath: publicDir,

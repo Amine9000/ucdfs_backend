@@ -4,9 +4,10 @@ import { EtapesController } from './etapes.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Etape } from './entities/etape.entity';
 import { Unit } from 'src/modules/entities/unit.entity';
+import { Student } from 'src/students/entities/student.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Etape, Unit])],
+  imports: [TypeOrmModule.forFeature([Etape, Unit, Student])],
   controllers: [EtapesController],
   providers: [EtapesService],
   exports: [EtapesService],

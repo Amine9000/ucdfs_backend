@@ -1,16 +1,20 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateEtapeDto } from './dto/create-etape.dto';
 import { UpdateEtapeDto } from './dto/update-etape.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Etape } from './entities/etape.entity';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Unit } from 'src/modules/entities/unit.entity';
 import { Student } from 'src/students/entities/student.entity';
 
 @Injectable()
 export class EtapesService {
+  private readonly logger = new Logger(EtapesService.name);
   constructor(
     @InjectRepository(Etape) private readonly etapeRepo: Repository<Etape>,
+    @InjectRepository(Unit) private readonly unitRepo: Repository<Unit>,
+    @InjectRepository(Student)
+    private readonly studentRepo: Repository<Student>,
   ) {}
   async create(createEtapeDto: CreateEtapeDto) {
     const ExistingEtape = await this.etapeRepo.findOne({
@@ -156,8 +160,8 @@ export class EtapesService {
     return this.etapeRepo.find();
   }
 
-  findByEtapeCode(etape_codes: string[]) {
-    return this.etapeRepo.find({ where: { etape_code: In(etape_codes) } });
+  findByEtapeCode(etape_code: string) {
+    return this.etapeRepo.findOne({ where: { etape_code: etape_code } });
   }
 
   findOne(etape_code: string) {
@@ -172,62 +176,96 @@ export class EtapesService {
     return this.etapeRepo.save(etapes);
   }
 
-  async remove(etape_code: string) {
-    const etape = await this.etapeRepo.findOne({
-      where: { etape_code },
-      relations: ['modules'],
-    });
-    if (!etape)
-      return {
-        message: 'Etape not found',
-      };
-    return this.etapeRepo.remove(etape);
-  }
+  async remove(etapeCode: string): Promise<void> {
+    // Start a transaction to ensure data integrity
+    await this.etapeRepo.manager.transaction(
+      async (transactionalEntityManager) => {
+        // Find the Etape to delete
+        const etape = await transactionalEntityManager.findOne(Etape, {
+          where: { etape_code: etapeCode },
+          relations: ['modules', 'modules.students'],
+        });
 
-  async mergeBranches(
-    etape_codes: string[],
-    branchName: string,
-    codeBranch: string,
-  ) {
-    const etapes = await this.etapeRepo.find({
-      where: {
-        etape_code: In(etape_codes),
+        if (!etape) {
+          throw new HttpException(
+            `Etape with code ${etapeCode} not found`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        // Get all students related to this Etape
+        const studentsToCheck = etape.modules.flatMap(
+          (module) => module.students,
+        );
+
+        // Delete the join table records first
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from('students_modules')
+          .where('module IN (:...moduleIds)', {
+            moduleIds: etape.modules.map((module) => module.id),
+          })
+          .execute();
+
+        // Delete the Etape and its associated Units
+        await transactionalEntityManager.remove(Etape, etape);
+
+        // Check if any students are only related to this Etape
+        for (const student of studentsToCheck) {
+          const otherEtapesCount = await transactionalEntityManager
+            .createQueryBuilder()
+            .select('COUNT(DISTINCT unit.etape_code)', 'count')
+            .from(Unit, 'unit')
+            .innerJoin('unit.students', 'student')
+            .where('student.id = :studentId', { studentId: student.id })
+            .andWhere('unit.etape_code <> :etapeCode', { etapeCode })
+            .getRawOne();
+
+          // If count is 0, delete the student
+          if (parseInt(otherEtapesCount.count, 10) === 0) {
+            await transactionalEntityManager.remove(Student, student);
+          }
+        }
       },
-      relations: ['modules'],
-    });
-    const modules_codes = new Set<string>();
-    const modules: Unit[] = [];
-    etapes.forEach((etape) => {
-      etape.modules.forEach((module) => {
-        if (!modules_codes.has(module.module_code)) modules.push(module);
-        modules_codes.add(module.module_code);
-      });
-    });
-    const newEtape = this.etapeRepo.create({
-      etape_code: codeBranch,
-      etape_name: branchName,
-    });
-    newEtape.modules = modules;
-    this.etapeRepo.save(newEtape);
-    return this.findAll(0, 10);
+    );
   }
 
-  async clearEtapesTable(): Promise<void> {
-    try {
-      const etapes = await this.etapeRepo.find();
-      let counter = 0;
-      const range = 1000;
+  async clearAll(): Promise<void> {
+    await this.etapeRepo.manager.transaction(
+      async (transactionalEntityManager) => {
+        this.logger.verbose('Clearing all records from students_modules');
+        // Delete from students_modules table
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from('students_modules')
+          .execute();
 
-      while (counter < etapes.length) {
-        const batch = etapes.slice(counter, counter + range);
-        await this.etapeRepo.remove(batch);
-        counter += range;
-      }
-    } catch (error) {
-      throw new HttpException(
-        'Error clearing modules table',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+        this.logger.verbose('Clearing all records from Modules');
+        // Delete all Units (Modules)
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from(Unit)
+          .execute();
+
+        this.logger.verbose('Clearing all records from etapes');
+        // Delete all Etapes
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from(Etape)
+          .execute();
+
+        this.logger.verbose('Clearing all records from students');
+        // Delete all Students
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from(Student)
+          .execute();
+      },
+    );
   }
 }

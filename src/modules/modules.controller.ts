@@ -7,17 +7,23 @@ import {
   Param,
   Delete,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { ModulesService } from './modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { EtapesService } from 'src/etapes/etapes.service';
 
 @Controller('modules')
 @UseGuards(AuthGuard, RolesGuard)
 export class ModulesController {
-  constructor(private readonly modulesService: ModulesService) {}
+  private readonly logger = new Logger(ModulesController.name);
+  constructor(
+    private readonly modulesService: ModulesService,
+    private readonly etapesService: EtapesService,
+  ) {}
 
   @Post()
   create(@Body() createModuleDto: CreateModuleDto) {
@@ -27,6 +33,19 @@ export class ModulesController {
   @Get()
   findAll() {
     return this.modulesService.findAll();
+  }
+
+  @Post('merge')
+  mergeBranches(
+    @Body('etape_codes') etape_codes: string[],
+    @Body('branchName') branchName: string,
+    @Body('codeBranch') codeBranch: string,
+  ) {
+    return this.modulesService.mergeBranches(
+      etape_codes,
+      branchName,
+      codeBranch,
+    );
   }
 
   @Get(':id')
@@ -49,6 +68,7 @@ export class ModulesController {
 
   @Delete('clear')
   clearModulesTable() {
+    this.logger.verbose('Clearing modules table', ModulesController.name);
     this.modulesService.clearModulesTable();
   }
 

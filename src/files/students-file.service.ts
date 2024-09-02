@@ -13,7 +13,10 @@ export class StudentsFileService {
     private readonly modulesService: ModulesService,
     private readonly studentsService: StudentsService,
   ) {}
-  store(file: Express.Multer.File, modules: string[]) {
+  store(
+    file: Express.Multer.File,
+    modules: { module_code: string; etape_code: string }[],
+  ) {
     let data = this.readFile(file.path);
     this.deleteFile(file.path);
     data = data.map((d) => ({ ...d, modules: modules }));
@@ -29,7 +32,10 @@ export class StudentsFileService {
       };
     });
   }
-  async saveStudents(data: CreateStudentDto[], modules: string[]) {
+  async saveStudents(
+    data: CreateStudentDto[],
+    modules: { module_code: string; etape_code: string }[],
+  ) {
     return this.studentsService.createBulkByMod(data, modules);
   }
 

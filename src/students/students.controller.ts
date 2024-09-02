@@ -9,6 +9,7 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -21,6 +22,7 @@ import { ROLE } from 'src/auth/enums/Role.enum';
 @Controller('students')
 @UseGuards(AuthGuard, RolesGuard)
 export class StudentsController {
+  private readonly logger = new Logger(StudentsController.name);
   constructor(private readonly studentsService: StudentsService) {}
 
   @Post()
@@ -112,6 +114,7 @@ export class StudentsController {
   @Delete('clear')
   @Roles(ROLE.Admin)
   clearStudentsTable() {
+    this.logger.verbose('Clearing students table', StudentsController.name);
     return this.studentsService.clearStudentsTable();
   }
   @Delete(':cne')

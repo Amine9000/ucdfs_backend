@@ -9,6 +9,7 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { EtapesService } from './etapes.service';
 import { CreateEtapeDto } from './dto/create-etape.dto';
@@ -22,6 +23,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 @UseGuards(AuthGuard, RolesGuard)
 @Roles(ROLE.Admin)
 export class EtapesController {
+  private readonly logger = new Logger(EtapesController.name);
   constructor(private readonly etapesService: EtapesService) {}
 
   @Post()
@@ -32,19 +34,6 @@ export class EtapesController {
   @Get('all')
   findAllEtapes() {
     return this.etapesService.findAllEtapes();
-  }
-
-  @Post('merge')
-  mergeBranches(
-    @Body('etape_codes') etape_codes: string[],
-    @Body('branchName') branchName: string,
-    @Body('codeBranch') codeBranch: string,
-  ) {
-    return this.etapesService.mergeBranches(
-      etape_codes,
-      branchName,
-      codeBranch,
-    );
   }
 
   @Get()
@@ -81,8 +70,9 @@ export class EtapesController {
   }
 
   @Delete('clear')
-  clearEtapesTable() {
-    this.etapesService.clearEtapesTable();
+  clearAll() {
+    this.logger.verbose('Clearing all Data');
+    this.etapesService.clearAll();
   }
 
   @Delete(':etape_code')

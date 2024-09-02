@@ -1,31 +1,30 @@
 import { Etape } from 'src/etapes/entities/etape.entity';
 import { Student } from 'src/students/entities/student.entity';
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity({ name: 'modules' })
 export class Unit {
-  @Column({ primary: true })
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
   module_code: string;
 
   @Column()
   module_name: string;
 
-  @ManyToMany(() => Etape, (etape) => etape.modules, {
-    cascade: true,
+  @ManyToOne(() => Etape, (etape) => etape.modules, {
     onDelete: 'CASCADE',
   })
-  @JoinTable({
-    name: 'modules_etapes',
-    joinColumn: {
-      name: 'module',
-      referencedColumnName: 'module_code',
-    },
-    inverseJoinColumn: {
-      name: 'etape',
-      referencedColumnName: 'etape_code',
-    },
-  })
-  etapes: Etape[];
+  @JoinColumn({ name: 'etape_code' })
+  etape: Etape;
 
   @ManyToMany(() => Student, (student) => student.modules)
   students: Student[];

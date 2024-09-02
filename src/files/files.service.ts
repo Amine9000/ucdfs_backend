@@ -32,7 +32,6 @@ export class FilesService {
 
       const data = this.readFile(file.path);
       const [etapes, modules, students] = this.getAllData(data);
-
       await this.saveEtapes(etapes);
       await this.saveModules(modules);
       await this.saveStudents(students);
@@ -50,9 +49,11 @@ export class FilesService {
     }
   }
 
-  studentsFile(file: Express.Multer.File, modules: string[]) {
+  studentsFile(
+    file: Express.Multer.File,
+    modules: { module_code: string; etape_code: string }[],
+  ) {
     const data = this.studentsFileService.store(file, modules);
-    console.log(data);
     return this.preparePasswordsFile(file, data);
   }
 
@@ -212,17 +213,12 @@ export class FilesService {
         }
 
         // modules
-        let key = COD_ELP;
-        if (!etapeModuleSets[key]) {
-          etapeModuleSets[key] = {
-            module_code: COD_ELP,
-            module_name: LIB_ELP,
-            etape_codes: [CODE_ETAPE],
-          };
-        } else {
-          if (!etapeModuleSets[key].etape_codes.includes(CODE_ETAPE))
-            etapeModuleSets[key].etape_codes.push(CODE_ETAPE);
-        }
+        let key = COD_ELP + '-' + CODE_ETAPE;
+        etapeModuleSets[key] = {
+          module_code: COD_ELP,
+          module_name: LIB_ELP,
+          etape_code: CODE_ETAPE,
+        };
 
         // students
 
@@ -236,9 +232,14 @@ export class FilesService {
             student_cin: CIN,
             student_birthdate: DATE_NAISSANCE,
           };
-          groupedData[key]['modules'] = new Set<string>();
+          groupedData[key]['modules'] = new Map();
         }
-        groupedData[key]['modules'].add(COD_ELP);
+        const obj = {
+          module_code: COD_ELP,
+          etape_code: CODE_ETAPE,
+        };
+
+        groupedData[key]['modules'].set(JSON.stringify(obj), obj);
       },
     );
 
@@ -246,7 +247,7 @@ export class FilesService {
       const std = {
         ...etd,
         student_pwd: '',
-        modules: Array.from(etd['modules']),
+        modules: Array.from(etd['modules'].values()),
       };
       return std;
     });

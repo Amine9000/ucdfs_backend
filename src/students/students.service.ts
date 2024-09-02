@@ -21,49 +21,76 @@ export class StudentsService {
     private readonly etapesRepo: Repository<Etape>,
     private readonly modulesService: ModulesService,
   ) {}
-  async create(createStudentDto: CreateStudentDto): Promise<Student | null> {
+  async create(
+    createStudentDto: CreateStudentDto,
+  ): Promise<{ message: string; status: HttpStatus } | null> {
     const { modules, ...studentDto } = createStudentDto;
+    return await this.studentsRepo.manager.transaction(
+      async (transactionalEntityManager) => {
+        const existingStudent = await transactionalEntityManager.findOne(
+          Student,
+          {
+            where: [
+              { student_code: studentDto.student_code },
+              { student_cne: studentDto.student_cne },
+              { student_cin: studentDto.student_cin },
+            ],
+            lock: { mode: 'pessimistic_write' },
+          },
+        );
 
-    try {
-      return await this.studentsRepo.manager.transaction(
-        async (transactionalEntityManager) => {
-          const existingStudent = await transactionalEntityManager.findOne(
-            Student,
-            {
-              where: [
-                { student_cne: studentDto.student_cne },
-                { student_cin: studentDto.student_cin },
-              ],
-              lock: { mode: 'pessimistic_write' },
-            },
-          );
-
-          if (existingStudent) {
-            return null;
+        if (existingStudent) {
+          if (existingStudent.student_cne == studentDto.student_cne) {
+            return {
+              message: 'CNE already exists, please choose another CNE',
+              status: HttpStatus.BAD_REQUEST,
+            };
           }
+          if (existingStudent.student_cin == studentDto.student_cin) {
+            return {
+              message: 'CIN already exists, please choose another CIN',
+              status: HttpStatus.BAD_REQUEST,
+            };
+          }
+          if (existingStudent.student_code == studentDto.student_code) {
+            return {
+              message: 'CODE already exists, please choose another CODE',
+              status: HttpStatus.BAD_REQUEST,
+            };
+          }
+        }
 
-          const modulesEntities = await this.modulesService.findByIds(modules);
-          const student = this.studentsRepo.create({
-            ...studentDto,
-            student_pwd: await bcrypt.hash(
-              studentDto.student_pwd,
-              saltOrRounds,
-            ),
-          });
-          student.modules = modulesEntities;
-          return await transactionalEntityManager.save(student);
-        },
-      );
-    } catch (error) {
-      this.logger.error(JSON.stringify(error));
-    }
+        const modulesEntities =
+          await this.modulesService.findByModulesAndEtapes(modules);
+        const student = this.studentsRepo.create({
+          ...studentDto,
+          student_pwd: await bcrypt.hash(studentDto.student_pwd, saltOrRounds),
+        });
+        student.modules = modulesEntities;
+        await transactionalEntityManager.save(student);
+        return {
+          message: 'Student created successfully',
+          status: HttpStatus.CREATED,
+          user: {
+            id: student.id,
+            student_code: student.student_code,
+            student_cne: student.student_cne,
+            student_cin: student.student_cin,
+            student_pwd: student.student_pwd,
+            student_fname: student.student_fname,
+            student_lname: student.student_lname,
+            student_birthdate: student.student_birthdate,
+          },
+        };
+      },
+    );
   }
 
   async findAllByEtape(etape_code: string, skip: number, take: number) {
     const students = await this.studentsRepo
       .createQueryBuilder('student')
       .leftJoinAndSelect('student.modules', 'module')
-      .leftJoinAndSelect('module.etapes', 'etape')
+      .leftJoinAndSelect('module.etape', 'etape')
       .where('etape.etape_code = :etape_code', { etape_code })
       .skip(skip)
       .take(take)
@@ -97,7 +124,7 @@ export class StudentsService {
     const studentIds = await this.studentsRepo
       .createQueryBuilder('student')
       .leftJoin('student.modules', 'module')
-      .leftJoin('module.etapes', 'etape')
+      .leftJoin('module.etape', 'etape')
       .where('etape.etape_code = :etape_code', { etape_code })
       .select('student.id')
       .distinct(true)
@@ -109,7 +136,7 @@ export class StudentsService {
 
     const students = await this.studentsRepo.find({
       where: { id: In(studentIds.map((s) => s.id)) },
-      relations: ['modules', 'modules.etapes'],
+      relations: ['modules', 'modules.etape'],
     });
 
     const studentsData = students.map((student) => {
@@ -168,7 +195,7 @@ export class StudentsService {
     const studentIds = await this.studentsRepo
       .createQueryBuilder('student')
       .leftJoin('student.modules', 'module')
-      .leftJoin('module.etapes', 'etape')
+      .leftJoin('module.etape', 'etape')
       .where('etape.etape_code = :etape_code', { etape_code })
       .andWhere(
         '(student.student_fname LIKE :search_query OR student.student_lname LIKE :search_query OR student.student_code LIKE :search_query OR student.student_cne LIKE :search_query OR student.student_cin LIKE :search_query)',
@@ -184,7 +211,7 @@ export class StudentsService {
 
     const students = await this.studentsRepo.find({
       where: { id: In(studentIds.map((s) => s.id)) },
-      relations: ['modules', 'modules.etapes'],
+      relations: ['modules', 'modules.etape'],
     });
 
     const studentsData = students.map((student) => {
@@ -219,7 +246,7 @@ export class StudentsService {
     const studentIds = await this.studentsRepo
       .createQueryBuilder('student')
       .leftJoin('student.modules', 'module')
-      .leftJoin('module.etapes', 'etape')
+      .leftJoin('module.etape', 'etape')
       .where('etape.etape_code = :etape_code', { etape_code })
       .andWhere(
         '(student.student_fname LIKE :search_query OR student.student_lname LIKE :search_query OR student.student_code LIKE :search_query OR student.student_cne LIKE :search_query OR student.student_cin LIKE :search_query)',
@@ -235,7 +262,7 @@ export class StudentsService {
 
     const students = await this.studentsRepo.find({
       where: { id: In(studentIds.map((s) => s.id)) },
-      relations: ['modules', 'modules.etapes'],
+      relations: ['modules', 'modules.etape'],
     });
 
     const studentsData = students.map((student) => {
@@ -265,7 +292,7 @@ export class StudentsService {
   async findOne(code: string) {
     const studentData = await this.studentsRepo.findOne({
       where: { student_code: code },
-      relations: ['modules', 'modules.etapes'],
+      relations: ['modules', 'modules.etape'],
     });
     if (!studentData) return null;
 
@@ -273,35 +300,32 @@ export class StudentsService {
     const etapes = {};
 
     const etapePromises = modules.map(async (mod) => {
-      const modEtapePromises = mod.etapes.map(async (etape) => {
-        const etapeEntity = await this.etapesRepo.findOne({
-          where: { etape_code: etape.etape_code },
-          relations: ['modules'],
-        });
-        if (!etapes[etape.etape_code]) {
-          etapes[etape.etape_code] = {
-            semester_code: etape.etape_code,
-            semester_name: etape.etape_name,
-            modules: etapeEntity.modules
-              ? etapeEntity.modules.map((m) => {
-                  return {
-                    nom: m.module_name,
-                    code: m.module_code,
-                    status: 'NI',
-                  };
-                })
-              : [],
-          };
-        }
-        if (etapes[etape.etape_code].modules.length > 0)
-          etapes[etape.etape_code].modules = etapes[
-            etape.etape_code
-          ].modules.map((m: { nom: string; code: string; status: string }) => {
-            // if (m.code == mod.module_code) console.log(mod.module_name);
-            return m.code == mod.module_code ? { ...m, status: 'I' } : m;
-          });
+      const etape = mod.etape;
+      const etapeEntity = await this.etapesRepo.findOne({
+        where: { etape_code: etape.etape_code },
+        relations: ['modules'],
       });
-      await Promise.all(modEtapePromises);
+      if (!etapes[etape.etape_code]) {
+        etapes[etape.etape_code] = {
+          semester_code: etape.etape_code,
+          semester_name: etape.etape_name,
+          modules: etapeEntity.modules
+            ? etapeEntity.modules.map((m) => {
+                return {
+                  nom: m.module_name,
+                  code: m.module_code,
+                  status: 'NI',
+                };
+              })
+            : [],
+        };
+      }
+      if (etapes[etape.etape_code].modules.length > 0)
+        etapes[etape.etape_code].modules = etapes[etape.etape_code].modules.map(
+          (m: { nom: string; code: string; status: string }) => {
+            return m.code == mod.module_code ? { ...m, status: 'I' } : m;
+          },
+        );
     });
 
     await Promise.all(etapePromises);
@@ -310,7 +334,7 @@ export class StudentsService {
   findStudentByCne(cne: string) {
     return this.studentsRepo.findOne({
       where: { student_cne: cne },
-      relations: ['modules', 'modules.etapes'],
+      relations: ['modules', 'modules.etape'],
     });
   }
 
@@ -375,60 +399,79 @@ export class StudentsService {
   }
 
   async createBulk(students: CreateStudentDto[]) {
-    const cneList = students.map((student) => student.student_cne);
-    const cinList = students.map((student) => student.student_cin);
+    try {
+      // Extract CNE and CIN values
+      const cneList = students.map((student) => student.student_cne);
+      const cinList = students.map((student) => student.student_cin);
 
-    // Query existing students by cne or cin
-    const existingStudents = await this.studentsRepo.find({
-      where: [{ student_cne: In(cneList) }, { student_cin: In(cinList) }],
-    });
+      // Query existing students
+      const existingStudents = await this.studentsRepo.find({
+        where: [{ student_cne: In(cneList) }, { student_cin: In(cinList) }],
+      });
 
-    // Filter out students that already exist in the database
-    const existingCneSet = new Set(
-      existingStudents.map((student) => student.student_cne),
-    );
-    const existingCinSet = new Set(
-      existingStudents.map((student) => student.student_cin),
-    );
+      // Create sets for existing CNE and CIN
+      const existingCneSet = new Set(
+        existingStudents.map((student) => student.student_cne),
+      );
+      const existingCinSet = new Set(
+        existingStudents.map((student) => student.student_cin),
+      );
 
-    const filteredStudents = students.filter(
-      (student) =>
-        !existingCneSet.has(student.student_cne) &&
-        !existingCinSet.has(student.student_cin),
-    );
-    const entities = await Promise.all(
-      filteredStudents.map(async (std) => {
-        const { modules, ...rest } = std;
-        const modulesEntities = await this.modulesService.findByIds(modules);
-        const hashedPwd = await bcrypt.hash(rest.student_pwd, saltOrRounds);
-        const stdEntity = this.studentsRepo.create({
-          ...rest,
-          student_pwd: hashedPwd,
-          student_cin: rest.student_cin ? rest.student_cin : null,
-        });
-        stdEntity.modules = modulesEntities;
-        return stdEntity;
-      }),
-    );
+      // Filter out existing students
+      const filteredStudents = students.filter(
+        (student) =>
+          !existingCneSet.has(student.student_cne) &&
+          !existingCinSet.has(student.student_cin),
+      );
 
-    const stdNum = entities.length;
-    const bulkSize = 1000;
-    const bulksNum = Math.floor(stdNum / bulkSize);
-    for (let i = 0; i < bulksNum; i++) {
-      const bulk = entities.slice(i * bulkSize, (i + 1) * bulkSize);
-      await this.studentsRepo.save(bulk);
+      // Map and create student entities
+      const entities = await Promise.all(
+        filteredStudents.map(async (std) => {
+          const { modules, ...rest } = std;
+          const modulesEntities =
+            await this.modulesService.findByModulesAndEtapes(modules);
+          const hashedPwd = await bcrypt.hash(rest.student_pwd, saltOrRounds);
+          const stdEntity = this.studentsRepo.create({
+            ...rest,
+            student_pwd: hashedPwd,
+            student_cin: rest.student_cin ? rest.student_cin : null,
+          });
+          stdEntity.modules = modulesEntities;
+          return stdEntity;
+        }),
+      );
+
+      // Define bulk size
+      const stdNum = entities.length;
+      const bulkSize = 200;
+      const bulksNum = Math.floor(stdNum / bulkSize);
+
+      // Start transaction to ensure atomicity
+      await this.studentsRepo.manager.transaction(
+        async (transactionalEntityManager) => {
+          // Insert students in bulk
+          for (let i = 0; i < bulksNum; i++) {
+            const bulk = entities.slice(i * bulkSize, (i + 1) * bulkSize);
+            await transactionalEntityManager.save(Student, bulk);
+          }
+
+          // Insert remaining students
+          const remainingEntities = entities.slice(bulksNum * bulkSize);
+          if (remainingEntities.length > 0) {
+            await transactionalEntityManager.save(Student, remainingEntities);
+          }
+        },
+      );
+    } catch (error) {
+      console.error('Error during bulk creation:', error);
+      throw new Error('Failed to create students in bulk.');
     }
-
-    // Handle any remaining entities that weren't covered by the full bulks
-    const remainingEntities = entities.slice(bulksNum * bulkSize);
-    if (remainingEntities.length > 0) {
-      await this.studentsRepo.save(remainingEntities);
-    }
-
-    // Perform bulk insertion of filtered students
   }
 
-  async createBulkByMod(students: CreateStudentDto[], modules: string[]) {
+  async createBulkByMod(
+    students: CreateStudentDto[],
+    modules: { module_code: string; etape_code: string }[],
+  ) {
     const cneList = students.map((student) => student.student_cne);
     const cinList = students.map((student) => student.student_cin);
 
@@ -450,7 +493,8 @@ export class StudentsService {
         !existingCneSet.has(student.student_cne) &&
         !existingCinSet.has(student.student_cin),
     );
-    const modulesEntities = await this.modulesService.findByIds(modules);
+    const modulesEntities =
+      await this.modulesService.findByModulesAndEtapes(modules);
     const entities = await Promise.all(
       filteredStudents.map(async (std) => {
         const stdEntity = this.studentsRepo.create({
@@ -469,7 +513,8 @@ export class StudentsService {
         const existingModuleCodes = new Set(
           std.modules.map((mod) => mod.module_code),
         );
-        const newModules = await this.modulesService.findByIds(modules);
+        const newModules =
+          await this.modulesService.findByModulesAndEtapes(modules);
         const uniqueNewModules = newModules.filter(
           (mod) => !existingModuleCodes.has(mod.module_code),
         );
@@ -484,7 +529,7 @@ export class StudentsService {
     entities.push(...updatedEntities);
 
     const stdNum = entities.length;
-    const bulkSize = 1000;
+    const bulkSize = 300;
     const bulksNum = Math.floor(stdNum / bulkSize);
     for (let i = 0; i < bulksNum; i++) {
       const bulk = entities.slice(i * bulkSize, (i + 1) * bulkSize);
@@ -524,7 +569,7 @@ export class StudentsService {
         relations: ['modules'],
       });
       let counter = 0;
-      const range = 1000;
+      const range = 100;
 
       while (counter < students.length) {
         const batch = students.slice(counter, counter + range);

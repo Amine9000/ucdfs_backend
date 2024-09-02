@@ -44,10 +44,7 @@ export class Student {
   @OneToMany(() => StudentService, (stdService) => stdService.student)
   services: StudentService[];
 
-  @ManyToMany(() => Unit, (etape) => etape.students, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
+  @ManyToMany(() => Unit, (etape) => etape.students)
   @JoinTable({
     name: 'students_modules',
     joinColumn: {
@@ -56,7 +53,7 @@ export class Student {
     },
     inverseJoinColumn: {
       name: 'module',
-      referencedColumnName: 'module_code',
+      referencedColumnName: 'id',
     },
   })
   modules: Unit[];

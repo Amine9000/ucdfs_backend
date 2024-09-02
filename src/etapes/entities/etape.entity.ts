@@ -1,13 +1,17 @@
 import { Unit } from 'src/modules/entities/unit.entity';
-import { Column, Entity, ManyToMany } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 
 @Entity({ name: 'etapes' })
 export class Etape {
   @Column({ primary: true })
   etape_code: string;
+
   @Column()
   etape_name: string;
 
-  @ManyToMany(() => Unit, (module) => module.etapes)
+  @OneToMany(() => Unit, (unit) => unit.etape, {
+    cascade: ['remove'],
+    onDelete: 'CASCADE',
+  })
   modules: Unit[];
 }

@@ -28,7 +28,7 @@ export class ServicesService {
       try {
         this.serviceRepo.save(service);
       } catch (err) {
-        return { error, status: 500 };
+        return { error, status: 300 };
       }
     }
   }
