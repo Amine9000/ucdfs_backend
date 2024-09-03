@@ -12,9 +12,6 @@ export class EtapesService {
   private readonly logger = new Logger(EtapesService.name);
   constructor(
     @InjectRepository(Etape) private readonly etapeRepo: Repository<Etape>,
-    @InjectRepository(Unit) private readonly unitRepo: Repository<Unit>,
-    @InjectRepository(Student)
-    private readonly studentRepo: Repository<Student>,
   ) {}
   async create(createEtapeDto: CreateEtapeDto) {
     const ExistingEtape = await this.etapeRepo.findOne({
@@ -23,6 +20,8 @@ export class EtapesService {
     if (!ExistingEtape) {
       const etape = this.etapeRepo.create({ ...createEtapeDto });
       return this.etapeRepo.save(etape);
+    } else {
+      throw new HttpException('Etape already exists', HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -168,8 +167,25 @@ export class EtapesService {
     return this.etapeRepo.findOne({ where: { etape_code } });
   }
 
-  update(id: number, updateEtapeDto: UpdateEtapeDto) {
-    return { id, updateEtapeDto };
+  async update(etape_code: string, updateEtapeDto: UpdateEtapeDto) {
+    const etape = await this.etapeRepo.findOne({
+      where: { etape_code: etape_code },
+    });
+    if (!etape) {
+      return {
+        message: 'No etape found with this code ' + etape_code,
+        status: HttpStatus.CREATED,
+      };
+    }
+    if (updateEtapeDto.etape_code && updateEtapeDto.etape_code.length > 0)
+      etape.etape_code = updateEtapeDto.etape_code;
+    if (updateEtapeDto.etape_name && updateEtapeDto.etape_name.length > 0)
+      etape.etape_name = updateEtapeDto.etape_name;
+    await this.etapeRepo.save(etape);
+    return {
+      message: 'etatpe was updated successefully',
+      status: HttpStatus.CREATED,
+    };
   }
 
   createBulk(etapes: CreateEtapeDto[]) {
@@ -199,14 +215,15 @@ export class EtapesService {
         );
 
         // Delete the join table records first
-        await transactionalEntityManager
-          .createQueryBuilder()
-          .delete()
-          .from('students_modules')
-          .where('module IN (:...moduleIds)', {
-            moduleIds: etape.modules.map((module) => module.id),
-          })
-          .execute();
+        if (etape.modules.length > 0)
+          await transactionalEntityManager
+            .createQueryBuilder()
+            .delete()
+            .from('students_modules')
+            .where('module IN (:...moduleIds)', {
+              moduleIds: etape.modules.map((module) => module.id),
+            })
+            .execute();
 
         // Delete the Etape and its associated Units
         await transactionalEntityManager.remove(Etape, etape);

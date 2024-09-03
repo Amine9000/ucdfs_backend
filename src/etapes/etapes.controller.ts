@@ -64,9 +64,12 @@ export class EtapesController {
     return this.etapesService.studentsValidationByEtape(etape_code);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEtapeDto: UpdateEtapeDto) {
-    return this.etapesService.update(+id, updateEtapeDto);
+  @Patch(':etape_code')
+  update(
+    @Param('etape_code') etape_code: string,
+    @Body() updateEtapeDto: UpdateEtapeDto,
+  ) {
+    return this.etapesService.update(etape_code, updateEtapeDto);
   }
 
   @Delete('clear')

@@ -18,7 +18,7 @@ export class StudentsFileService {
     modules: { module_code: string; etape_code: string }[],
   ) {
     let data = this.readFile(file.path);
-    this.deleteFile(file.path);
+    this.deleteFile(file.filename);
     data = data.map((d) => ({ ...d, modules: modules }));
     this.saveStudents(data, modules);
     return data.map((d) => {
@@ -40,7 +40,7 @@ export class StudentsFileService {
   }
 
   readFile(path: string): CreateStudentDto[] {
-    this.logger.log('READING THE FILE.');
+    this.logger.verbose('READING THE FILE.');
     const workbook = xlsx.readFile(path, { cellDates: true });
     const sheet = workbook.SheetNames[0];
     const data: CreateStudentDto[] = xlsx.utils.sheet_to_json(
@@ -66,10 +66,10 @@ export class StudentsFileService {
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
-  async deleteFile(path: string) {
-    this.logger.verbose('FILE PATH : ' + path);
-    if (fs.existsSync(path)) {
-      fs.unlink(path, (err) => {
+  async deleteFile(name: string) {
+    this.logger.verbose('FILE PATH : ' + name);
+    if (fs.existsSync(name)) {
+      fs.unlink(name, (err) => {
         if (err) {
           this.logger.error(err.message);
         }

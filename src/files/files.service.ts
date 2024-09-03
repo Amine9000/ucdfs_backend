@@ -41,7 +41,7 @@ export class FilesService {
       const processingTime = endTime - startTime;
 
       // log time in minutes
-      this.logger.log(
+      this.logger.verbose(
         `The file has been processed in ${processingTime / 60000} minutes`,
       );
       const originalStudents = JSON.parse(JSON.stringify(students));
@@ -54,6 +54,7 @@ export class FilesService {
     modules: { module_code: string; etape_code: string }[],
   ) {
     const data = this.studentsFileService.store(file, modules);
+    this.logger.verbose('PROCCESS ENDED');
     return this.preparePasswordsFile(file, data);
   }
 
@@ -97,7 +98,7 @@ export class FilesService {
   }
 
   readFile(path: string): FileColumnsNames[] {
-    this.logger.log('READING THE FILE.');
+    this.logger.verbose('READING THE FILE.');
     const workbook = xlsx.readFile(path, { cellDates: true });
     const sheet = workbook.SheetNames[0];
     const data: FileColumnsNames[] = xlsx.utils.sheet_to_json(
@@ -107,7 +108,7 @@ export class FilesService {
   }
 
   getStudents(data: FileColumnsNames[]) {
-    this.logger.log('EXTRACTING STUDENTS FROM THE DATA.');
+    this.logger.verbose('EXTRACTING STUDENTS FROM THE DATA.');
     const groupedData: Record<string, any> = {};
     for (const record of data) {
       if (record) {
@@ -141,7 +142,7 @@ export class FilesService {
   }
 
   getAllModulesByEtape(data: FileColumnsNames[]) {
-    this.logger.log('EXTRACTING MODULES FROM THE DATA.');
+    this.logger.verbose('EXTRACTING MODULES FROM THE DATA.');
     const allModules: object[] = data.map((record) => ({
       etape_code: record['CODE_ETAPE'],
       module_code: record['COD_ELP'],
@@ -167,7 +168,7 @@ export class FilesService {
   }
 
   getAllEtapes(data: FileColumnsNames[]): CreateEtapeDto[] {
-    this.logger.log('EXTRACTING ETAPES FROM THE DATA.');
+    this.logger.verbose('EXTRACTING ETAPES FROM THE DATA.');
     const etapesSet = new Set<string>();
     const etapes: CreateEtapeDto[] = [];
     data.forEach((record) => {
@@ -256,17 +257,17 @@ export class FilesService {
   }
 
   async saveEtapes(etapes: CreateEtapeDto[]) {
-    this.logger.log('SAVING ETAPES TO THE DATABASE.');
+    this.logger.verbose('SAVING ETAPES TO THE DATABASE.');
     await this.etapesService.createBulk(etapes);
   }
 
   async saveModules(modules: CreateModuleDto[]) {
-    this.logger.log('SAVING MODULES TO THE DATABASE.');
+    this.logger.verbose('SAVING MODULES TO THE DATABASE.');
     await this.modulesService.createBulk(modules);
   }
 
   async saveStudents(students: CreateStudentDto[]) {
-    this.logger.log('SAVING STUDENTS TO THE DATABASE.');
+    this.logger.verbose('SAVING STUDENTS TO THE DATABASE.');
     const entities = await Promise.all(
       students.map(async (std) => {
         std.student_pwd = std.student_cne + '@' + std.student_cin;

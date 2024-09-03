@@ -75,12 +75,12 @@ export class UsersService {
       message: `Un nouvel utilisateur a été créé avec succès.`,
     };
     if (!createUserDto.user_password || createUserDto.user_password.length == 0)
-      console.log(
+      this.logger.verbose(
         '\n+----------------------------------------------------------------------+\n',
       );
-    console.log('Email : ' + user.user_email);
-    console.log('Password : ' + password);
-    console.log(
+    this.logger.verbose('Email : ' + user.user_email);
+    this.logger.verbose('Password : ' + password);
+    this.logger.verbose(
       '\n+----------------------------------------------------------------------+\n',
     );
     return message;
