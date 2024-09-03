@@ -111,6 +111,12 @@ export class StudentsController {
     return this.studentsService.regenpwd(code);
   }
 
+  @Patch(':code/change')
+  @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
+  changepwd(@Param('code') code: string, @Body('password') password: string) {
+    return this.studentsService.changepwd(code, password);
+  }
+
   @Delete('clear')
   @Roles(ROLE.Admin)
   clearStudentsTable() {

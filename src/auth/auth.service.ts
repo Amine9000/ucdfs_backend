@@ -29,7 +29,6 @@ export class AuthService {
       const payload = {
         sub: user.user_id,
         email: user.user_email,
-        roles: user.roles.map((role) => role.role_name),
       };
       delete user.user_password;
       delete user.user_id;
@@ -70,9 +69,8 @@ export class AuthService {
 
     if (isSamePwd) {
       const payload = {
-        sub: student.student_cne,
-        cin: student.student_cin,
-        roles: ['student'],
+        sub: student.id,
+        cne: student.student_cne,
       };
       delete student.student_pwd;
 

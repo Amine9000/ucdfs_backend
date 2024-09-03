@@ -563,6 +563,21 @@ export class StudentsService {
     return { password: pwd, message: 'Password regenerated successfully' };
   }
 
+  async changepwd(code: string, password: string) {
+    const student = await this.studentsRepo.findOne({
+      where: { student_code: code },
+    });
+    if (!student) {
+      return { message: 'Student not found' };
+    }
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(password, salt);
+    student.student_pwd = hashedPassword;
+    student.is_first_login = false;
+    await this.studentsRepo.save(student);
+    return { password: password, message: 'Password regenerated successfully' };
+  }
+
   async clearStudentsTable() {
     try {
       const students = await this.studentsRepo.find({
