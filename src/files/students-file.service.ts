@@ -55,8 +55,8 @@ export class StudentsFileService {
         length: 10,
         numbers: true,
       }),
-      student_cin: null,
-      student_cne: null,
+      student_cin: row['XX-APO_TITRES-XX'],
+      student_cne: row['XX-APO_TITRES-XX'],
       modules: [],
     }));
   }
