@@ -344,7 +344,10 @@ export class FilesService {
     for (let i = 0; i < groupNum; i++) {
       let end = start + groupLength;
       if (end > data.length) end = data.length;
-      groups.push(data.slice(start, end));
+      const piece = data.slice(start, end);
+      console.log(piece.length);
+      console.log(piece);
+      groups.push(piece);
       start = end;
     }
     return groups;

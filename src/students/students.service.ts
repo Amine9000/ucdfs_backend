@@ -166,7 +166,29 @@ export class StudentsService {
   abbreviateCourseName(courseName: string) {
     courseName = courseName.replace(/[^0-9a-zA-Z ]/g, '');
     const words = courseName.split(' ');
-    const excludedWords = ['de', 'la', 'et', 'le', 'les', 'des'];
+    const excludedWords = [
+      'de',
+      'la',
+      'et',
+      'le',
+      'les',
+      'des',
+      'en',
+      'un',
+      'une',
+      'du',
+      'au',
+      'aux',
+      'dans',
+      'par',
+      'pour',
+      'sur',
+      'avec',
+      'sans',
+      'que',
+      'qui',
+    ];
+
     const index = words.findIndex((word) => !isNaN(parseFloat(word)));
     if (index !== -1) {
       return words.slice(0, index + 1).join(' ');

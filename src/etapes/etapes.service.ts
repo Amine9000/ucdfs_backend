@@ -96,9 +96,6 @@ export class EtapesService {
         Code: rest.student_code,
         Prenom: rest.student_fname,
         Nom: rest.student_lname,
-        CNE: rest.student_cne,
-        CIN: rest.student_cin,
-        'Date Naissance': rest.student_birthdate,
       };
       allModules.forEach((mod) => {
         nStd[this.abbreviateCourseName(mod.module_name)] = 'NI';
@@ -116,7 +113,28 @@ export class EtapesService {
   abbreviateCourseName(courseName: string) {
     courseName = courseName.replace(/[^0-9a-zA-Z ]/g, '');
     const words = courseName.split(' ');
-    const excludedWords = ['de', 'la', 'et', 'le', 'les', 'des'];
+    const excludedWords = [
+      'de',
+      'la',
+      'et',
+      'le',
+      'les',
+      'des',
+      'en',
+      'un',
+      'une',
+      'du',
+      'au',
+      'aux',
+      'dans',
+      'par',
+      'pour',
+      'sur',
+      'avec',
+      'sans',
+      'que',
+      'qui',
+    ];
     const index = words.findIndex((word) => !isNaN(parseFloat(word)));
     if (index !== -1) {
       return words.slice(0, index + 1).join(' ');
