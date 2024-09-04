@@ -90,10 +90,10 @@ export class EtapesService {
       });
     });
     const studentsData: object[] = [];
-    students.forEach((std) => {
+    students.forEach((std, i) => {
       const { modules, ...rest } = std;
       const nStd: object = {
-        Code: rest.student_code,
+        Numero: i + 1,
         Prenom: rest.student_fname,
         Nom: rest.student_lname,
       };

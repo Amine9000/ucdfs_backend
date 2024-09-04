@@ -125,21 +125,23 @@ export class FilesController {
   async getStudentsValidationFiles(
     @Param('etape_code') etape_code: string,
     @Body('groupNum', ParseIntPipe) groupNum: number,
+    @Body('outputType') outputType: string,
   ) {
     const output = await this.filesService.getStudentsValidationFiles(
       etape_code,
       groupNum,
+      outputType,
     );
     if (typeof output != 'string') return output;
     const file = createReadStream(output);
 
-    file.on('end', () => {
-      fs.unlink(output, (err) => {
-        if (err) {
-          this.logger.error(err.message);
-        }
-      });
-    });
+    // file.on('end', () => {
+    //   fs.unlink(output, (err) => {
+    //     if (err) {
+    //       this.logger.error(err.message);
+    //     }
+    //   });
+    // });
 
     return new StreamableFile(file);
   }

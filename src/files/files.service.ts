@@ -15,6 +15,7 @@ import { archiveFolder } from 'zip-lib';
 import { rimrafSync } from 'rimraf';
 import * as passwordGenerator from 'generate-password';
 import { StudentsFileService } from './students-file.service';
+import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class FilesService {
@@ -83,7 +84,7 @@ export class FilesService {
       };
     });
 
-    await this.saveToFile(studnets_file_data, filePath);
+    await this.saveToFile(studnets_file_data, filePath, 'excel');
     return filePath;
   }
 
@@ -280,7 +281,11 @@ export class FilesService {
     await this.studentsService.createBulk(entities);
   }
 
-  async getStudentsValidationFiles(etape_code: string, groupNum: number) {
+  async getStudentsValidationFiles(
+    etape_code: string,
+    groupNum: number,
+    outputType: string,
+  ) {
     const data = await this.etapesService.studentsValidationByEtape(etape_code);
 
     // groups number validation
@@ -298,11 +303,15 @@ export class FilesService {
 
     const groups = this.devideData(data, groupNum);
 
-    const zipPath = this.saveGroupsAsZipFile(groups, etape_code);
+    const zipPath = this.saveGroupsAsZipFile(groups, etape_code, outputType);
     return zipPath;
   }
 
-  async saveGroupsAsZipFile(groups: any[], etape_code: string) {
+  async saveGroupsAsZipFile(
+    groups: any[],
+    etape_code: string,
+    outputType: string,
+  ) {
     const dirPath = join(__dirname, '..', '..', '..', 'downloads');
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath);
@@ -314,10 +323,14 @@ export class FilesService {
       fs.mkdirSync(temDirPath);
     }
     groups.forEach(async (group: any[], index) => {
-      const fileName = etape_code + '-group-' + (index + 1) + '.xlsx';
+      const fileName =
+        etape_code +
+        '-group-' +
+        (index + 1) +
+        (outputType == 'excel' ? '.xlsx' : '.pdf');
 
       const filePath = join(temDirPath, fileName);
-      await this.saveToFile(group, filePath);
+      await this.saveToFile(group, filePath, outputType);
     });
     const zipPath = join(dirPath, tempDirName + '.zip');
     await this.zipDir(temDirPath, zipPath);
@@ -345,8 +358,6 @@ export class FilesService {
       let end = start + groupLength;
       if (end > data.length) end = data.length;
       const piece = data.slice(start, end);
-      console.log(piece.length);
-      console.log(piece);
       groups.push(piece);
       start = end;
     }
@@ -381,11 +392,15 @@ export class FilesService {
 
     const groups = this.devideData(data, groupNum);
 
-    const zipPath = this.saveGroupsAsZipFile(groups, etape_codes.join('-'));
+    const zipPath = this.saveGroupsAsZipFile(
+      groups,
+      etape_codes.join('-'),
+      'excel',
+    );
     return zipPath;
   }
 
-  async saveToFile(data: object[], path: string) {
+  async saveToExcelFile(data: object[], path: string) {
     // fill empty cells
     data = data.map((row) => {
       const newRow = {};
@@ -403,6 +418,199 @@ export class FilesService {
 
     // Write the workbook to a file
     xlsx.writeFile(workbook, path);
+  }
+
+  saveToPdfFile(data: object[], path: string) {
+    const width = 595; // A4 width in points
+    const height = 842; // A4 height in points
+    const margins = { top: 50, bottom: 50, left: 50, right: 50 };
+
+    // Create a new PDF document
+    const doc = new PDFDocument({
+      size: [width, height],
+      margins: {
+        top: margins.top,
+        bottom: margins.bottom,
+        left: margins.left,
+        right: margins.right,
+      },
+    });
+
+    // Pipe the document to a writable stream
+    const writeStream = fs.createWriteStream(path);
+    doc.pipe(writeStream);
+    const fontBold = join(__dirname, '..', '..', 'public', 'fonts/bold.otf');
+    const fontMedium = join(
+      __dirname,
+      '..',
+      '..',
+      'public',
+      'fonts/medium.otf',
+    );
+    const fontLight = join(__dirname, '..', '..', 'public', 'fonts/light.otf');
+    doc.registerFont('Bold', fontBold);
+    doc.registerFont('medium', fontMedium);
+    doc.registerFont('light', fontLight);
+
+    function header() {
+      // Add text to the document
+      doc.font('Bold').fontSize(12).text("l'Université Chouaïb Doukkali", {
+        characterSpacing: 1,
+      });
+      doc.font('Bold').fontSize(12).text('Faculté des Sciences', {
+        characterSpacing: 1,
+      });
+      doc.font('Bold').fontSize(12).text("d'El Jadida", {
+        characterSpacing: 1,
+      });
+      const group = 'Group 1';
+      const textWidth = doc.widthOfString(group, {
+        characterSpacing: 1,
+      });
+      doc
+        .font('Bold')
+        .fontSize(12)
+        .text(group, width / 2 - textWidth / 2);
+    }
+    header();
+
+    // Table headers
+    const headers = Object.keys(data[0]);
+    const startX = margins.left;
+    let currentY = margins.top + 100;
+    const gap = 1;
+    const columnWidth =
+      (width - margins.left - margins.right - (headers.length - 1) * gap) /
+      headers.length;
+    const numRowsPerPage = 30;
+    const numPages = Math.ceil(data.length / numRowsPerPage);
+    const rowHeight = 18;
+    const numeroWidth = 30;
+    const paddings = {
+      left: 2,
+      top: 2,
+    };
+
+    function alignItem(key: string) {
+      if (key == 'Prenom' || key == 'Nom') {
+        return 'left';
+      } else {
+        return 'center';
+      }
+    }
+    function getWidth(key: string) {
+      if (key == 'Numero') {
+        return numeroWidth;
+      } else if (key == 'Nom' || key == 'Prenom') {
+        return columnWidth + (columnWidth - numeroWidth) / 2;
+      } else {
+        return columnWidth;
+      }
+    }
+    function jump(lastheader: string) {
+      if (lastheader === '') return 0;
+      if (lastheader == 'Numero') {
+        return numeroWidth + gap;
+      } else if (lastheader == 'Nom' || lastheader == 'Prenom') {
+        return columnWidth + (columnWidth - numeroWidth) / 2 + gap;
+      } else {
+        return columnWidth + gap;
+      }
+    }
+
+    for (let i = 0; i < numPages; i++) {
+      if (i > 0) {
+        doc.addPage();
+        header();
+        currentY = margins.top + 100;
+      }
+      let lastheader = '';
+      let currentX = 0;
+      headers.forEach((header) => {
+        currentX += jump(lastheader);
+        doc
+          .rect(startX + currentX, currentY, getWidth(header), rowHeight)
+          .fill('lightgray')
+          .stroke();
+        doc
+          .fontSize(8)
+          .font('medium')
+          .fillColor('black')
+          .text(
+            header == 'Numero' ? 'Nr' : header,
+            startX + currentX + paddings.left,
+            currentY + paddings.top,
+            {
+              width: getWidth(header),
+              height: rowHeight,
+              align: alignItem(header),
+              lineBreak: false,
+              ellipsis: true,
+              characterSpacing: 1,
+            },
+          );
+        lastheader = header;
+      });
+
+      currentY += rowHeight;
+
+      doc
+        .moveTo(startX, currentY)
+        .lineTo(
+          startX + headers.length * columnWidth + (headers.length - 1) * gap,
+          currentY,
+        )
+        .stroke();
+      data
+        .slice(i * numRowsPerPage, (i + 1) * numRowsPerPage)
+        .forEach((row) => {
+          currentX = 0;
+          lastheader = '';
+          headers.forEach((header) => {
+            currentX += jump(lastheader);
+            doc
+              .rect(startX + currentX, currentY, getWidth(header), rowHeight)
+              .fill('lightgray') // Fill color for the cell background
+              .stroke();
+            doc
+              .fontSize(8)
+              .font('light')
+              .fillColor('black')
+              .text(
+                String(row[header]),
+                startX + currentX + paddings.left,
+                currentY + paddings.top,
+                {
+                  width: getWidth(header),
+                  height: rowHeight,
+                  align: alignItem(header),
+                  lineBreak: false,
+                  ellipsis: true,
+                  characterSpacing: 1,
+                },
+              );
+            lastheader = header;
+          });
+          currentY += rowHeight;
+
+          doc
+            .moveTo(startX, currentY)
+            .lineTo(startX + headers.length * columnWidth, currentY)
+            .stroke();
+        });
+    }
+
+    doc.end();
+
+    return new Promise((resolve, reject) => {
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+  }
+
+  async saveToFile(data: object[], path: string, outputType: string) {
+    if (outputType == 'excel') this.saveToExcelFile(data, path);
+    else await this.saveToPdfFile(data, path);
   }
 
   findAll() {
