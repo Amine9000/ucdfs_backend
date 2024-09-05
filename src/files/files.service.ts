@@ -285,8 +285,11 @@ export class FilesService {
     etape_code: string,
     groupNum: number,
     outputType: string,
+    sectionsNbr: number,
+    session: string,
   ) {
-    const data = await this.etapesService.studentsValidationByEtape(etape_code);
+    const { studentsData: data, etapeName } =
+      await this.etapesService.studentsValidationByEtape(etape_code);
 
     // groups number validation
     if (groupNum == 0)
@@ -301,16 +304,47 @@ export class FilesService {
         HttpStatus.BAD_REQUEST,
       );
 
-    const groups = this.devideData(data, groupNum);
-
-    const zipPath = this.saveGroupsAsZipFile(groups, etape_code, outputType);
+    const sections: Map<number, object[][]> = this.devideDataIntoSection(
+      data,
+      groupNum,
+      sectionsNbr,
+    );
+    // else sections = this.devideData(data, groupNum);
+    const zipPath = this.saveSectionsAsZipFile(
+      sections,
+      etape_code,
+      outputType,
+      session,
+      etapeName,
+    );
     return zipPath;
   }
 
-  async saveGroupsAsZipFile(
-    groups: any[],
+  devideDataIntoSection(
+    data: object[],
+    groupNum: number,
+    sectionsNbr: number,
+  ): any {
+    let start = 0;
+    const sectionLength = Math.ceil(data.length / sectionsNbr);
+    const sections = new Map<number, object[][]>();
+    for (let i = 0; i < sectionsNbr; i++) {
+      let end = start + sectionLength;
+      if (end > data.length) end = data.length;
+      const piece = data.slice(start, end);
+      const groups = this.devideData(piece, groupNum);
+      sections.set(i, groups);
+      start = end;
+    }
+    return sections;
+  }
+
+  async saveSectionsAsZipFile(
+    sections: Map<number, object[][]>,
     etape_code: string,
     outputType: string,
+    session?: string,
+    etapeName?: any,
   ) {
     const dirPath = join(__dirname, '..', '..', '..', 'downloads');
     if (!fs.existsSync(dirPath)) {
@@ -322,15 +356,22 @@ export class FilesService {
     if (!fs.existsSync(temDirPath)) {
       fs.mkdirSync(temDirPath);
     }
-    groups.forEach(async (group: any[], index) => {
-      const fileName =
-        etape_code +
-        '-group-' +
-        (index + 1) +
-        (outputType == 'excel' ? '.xlsx' : '.pdf');
-
-      const filePath = join(temDirPath, fileName);
-      await this.saveToFile(group, filePath, outputType);
+    sections.forEach(async (groups, index) => {
+      let folderPath = temDirPath;
+      const sectionNum = sections.size > 1 ? index + 1 : 0;
+      if (sections.size > 1) {
+        const folderName = etape_code + '-section-' + sectionNum;
+        folderPath = join(temDirPath, folderName);
+      }
+      await this.saveGroupsAsZipFile(
+        groups,
+        etape_code,
+        outputType,
+        session,
+        folderPath,
+        etapeName,
+        sectionNum,
+      );
     });
     const zipPath = join(dirPath, tempDirName + '.zip');
     await this.zipDir(temDirPath, zipPath);
@@ -340,6 +381,39 @@ export class FilesService {
       rimrafSync(temDirPath);
     }
     return zipPath;
+  }
+
+  async saveGroupsAsZipFile(
+    groups: object[][],
+    etape_code: string,
+    outputType: string,
+    session?: string,
+    folderPath?: string,
+    etapeName?: any,
+    sectionNum?: number,
+  ) {
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath);
+    }
+    groups.forEach(async (group: object[], index) => {
+      const groupNum = index + 1;
+      const fileName =
+        etape_code +
+        '-group-' +
+        groupNum +
+        (outputType == 'excel' ? '.xlsx' : '.pdf');
+
+      const filePath = join(folderPath, fileName);
+      await this.saveToFile(
+        group.map((group, i) => ({ ...group, Numero: i + 1 })),
+        filePath,
+        outputType,
+        session,
+        groupNum,
+        etapeName,
+        sectionNum,
+      ); // index + 1 is the number of the group
+    });
   }
 
   async zipDir(temDirPath: string, zipPath: string) {
@@ -372,9 +446,9 @@ export class FilesService {
 
     for (let i = 0; i < etape_codes.length; i++) {
       const etape_code = etape_codes[i];
-      data.push(
-        ...(await this.etapesService.studentsValidationByEtape(etape_code)),
-      );
+      const { studentsData } =
+        await this.etapesService.studentsValidationByEtape(etape_code);
+      data.push(...studentsData);
     }
 
     // groups number validation
@@ -390,7 +464,7 @@ export class FilesService {
         HttpStatus.BAD_REQUEST,
       );
 
-    const groups = this.devideData(data, groupNum);
+    const groups = this.devideDataIntoSection(data, groupNum, 1);
 
     const zipPath = this.saveGroupsAsZipFile(
       groups,
@@ -420,7 +494,14 @@ export class FilesService {
     xlsx.writeFile(workbook, path);
   }
 
-  saveToPdfFile(data: object[], path: string) {
+  saveToPdfFile(
+    data: object[],
+    path: string,
+    session: string,
+    groupNum: number,
+    etapeName: any,
+    sectionNum: number,
+  ) {
     const width = 595; // A4 width in points
     const height = 842; // A4 height in points
     const margins = { top: 50, bottom: 50, left: 50, right: 50 };
@@ -448,36 +529,24 @@ export class FilesService {
       'fonts/medium.otf',
     );
     const fontLight = join(__dirname, '..', '..', 'public', 'fonts/light.otf');
+    const robotoLight = join(
+      __dirname,
+      '..',
+      '..',
+      'public',
+      'fonts/light.ttf',
+    );
     doc.registerFont('Bold', fontBold);
     doc.registerFont('medium', fontMedium);
     doc.registerFont('light', fontLight);
-
-    function header() {
-      // Add text to the document
-      doc.font('Bold').fontSize(12).text("l'Université Chouaïb Doukkali", {
-        characterSpacing: 1,
-      });
-      doc.font('Bold').fontSize(12).text('Faculté des Sciences', {
-        characterSpacing: 1,
-      });
-      doc.font('Bold').fontSize(12).text("d'El Jadida", {
-        characterSpacing: 1,
-      });
-      const group = 'Group 1';
-      const textWidth = doc.widthOfString(group, {
-        characterSpacing: 1,
-      });
-      doc
-        .font('Bold')
-        .fontSize(12)
-        .text(group, width / 2 - textWidth / 2);
-    }
-    header();
+    doc.registerFont('robotolight', robotoLight);
 
     // Table headers
     const headers = Object.keys(data[0]);
     const startX = margins.left;
-    let currentY = margins.top + 100;
+    const tableMarginTop = 150;
+    const groupInfoMarginTop = 60;
+    let currentY = 0;
     const gap = 1;
     const columnWidth =
       (width - margins.left - margins.right - (headers.length - 1) * gap) /
@@ -490,6 +559,80 @@ export class FilesService {
       left: 2,
       top: 2,
     };
+
+    function header() {
+      // Add text to the document
+      doc
+        .font('Bold')
+        .fontSize(12)
+        .fillColor('#001e33')
+        .text("l'Université Chouaïb Doukkali", {
+          characterSpacing: 1,
+        });
+      doc
+        .font('Bold')
+        .fontSize(12)
+        .fillColor('#001e33')
+        .text('Faculté des Sciences', {
+          characterSpacing: 1,
+        });
+      doc.font('Bold').fontSize(12).fillColor('#001e33').text("d'El Jadida", {
+        characterSpacing: 1,
+      });
+      currentY = margins.top + groupInfoMarginTop;
+      const group = 'Group ' + groupNum;
+      const groupWidth = doc.widthOfString(group, {
+        characterSpacing: 1,
+      });
+      const listText = `les listes de la filière ${etapeName}`;
+      const listTextWidth = doc.widthOfString(listText, {
+        characterSpacing: 1,
+      });
+      const sessionText = `Session ${session}`;
+      const sessionTextWidth = doc.widthOfString(sessionText, {
+        characterSpacing: 1,
+      });
+      doc
+        .font('Bold')
+        .fontSize(12)
+        .fillColor('#004c7f')
+        .text(listText, width / 2 - listTextWidth / 2, currentY);
+      doc
+        .font('Bold')
+        .fontSize(12)
+        .fillColor('#001e33')
+        .text(
+          sessionText,
+          width / 2 - sessionTextWidth / 2,
+          currentY + rowHeight,
+        );
+
+      if (sectionNum != 0) {
+        const sectionText = `Section ${sectionNum}`;
+        const sectionTextWidth = doc.widthOfString(sectionText, {
+          characterSpacing: 1,
+        });
+        doc
+          .font('Bold')
+          .fontSize(12)
+          .fillColor('#001e33')
+          .text(
+            sectionText,
+            width / 2 - sectionTextWidth / 2,
+            currentY + 2 * rowHeight,
+          );
+      }
+      doc
+        .font('Bold')
+        .fontSize(12)
+        .fillColor('#001e33')
+        .text(
+          group,
+          width / 2 - groupWidth / 2,
+          currentY + (sectionNum == 0 ? 2 : 3) * rowHeight,
+        );
+    }
+    header();
 
     function alignItem(key: string) {
       if (key == 'Prenom' || key == 'Nom') {
@@ -517,12 +660,22 @@ export class FilesService {
         return columnWidth + gap;
       }
     }
-
+    function colorvalues(value: string) {
+      switch (value) {
+        case 'I':
+          return '#006bb2';
+        case 'NI':
+          return '#ff6701';
+        default:
+          return '#001e33';
+      }
+    }
+    currentY = margins.top + tableMarginTop;
     for (let i = 0; i < numPages; i++) {
       if (i > 0) {
         doc.addPage();
         header();
-        currentY = margins.top + 100;
+        currentY = margins.top + tableMarginTop;
       }
       let lastheader = '';
       let currentX = 0;
@@ -530,12 +683,12 @@ export class FilesService {
         currentX += jump(lastheader);
         doc
           .rect(startX + currentX, currentY, getWidth(header), rowHeight)
-          .fill('lightgray')
+          .fill('#dddddd')
           .stroke();
         doc
           .fontSize(8)
           .font('medium')
-          .fillColor('black')
+          .fillColor('#001e33')
           .text(
             header == 'Numero' ? 'Nr' : header,
             startX + currentX + paddings.left,
@@ -555,6 +708,7 @@ export class FilesService {
       currentY += rowHeight;
 
       doc
+        .strokeColor('#001e33')
         .moveTo(startX, currentY)
         .lineTo(
           startX + headers.length * columnWidth + (headers.length - 1) * gap,
@@ -563,19 +717,19 @@ export class FilesService {
         .stroke();
       data
         .slice(i * numRowsPerPage, (i + 1) * numRowsPerPage)
-        .forEach((row) => {
+        .forEach((row, rowIndex) => {
           currentX = 0;
           lastheader = '';
           headers.forEach((header) => {
             currentX += jump(lastheader);
             doc
               .rect(startX + currentX, currentY, getWidth(header), rowHeight)
-              .fill('lightgray') // Fill color for the cell background
+              .fill(rowIndex % 2 == 0 ? '#eeeeee' : '#ffffff') // Fill color for the cell background
               .stroke();
             doc
               .fontSize(8)
-              .font('light')
-              .fillColor('black')
+              .font('robotolight')
+              .fillColor(colorvalues(String(row[header])))
               .text(
                 String(row[header]),
                 startX + currentX + paddings.left,
@@ -594,8 +748,14 @@ export class FilesService {
           currentY += rowHeight;
 
           doc
+            .strokeColor('#001e33')
             .moveTo(startX, currentY)
-            .lineTo(startX + headers.length * columnWidth, currentY)
+            .lineTo(
+              startX +
+                headers.length * columnWidth +
+                (headers.length - 1) * gap,
+              currentY,
+            )
             .stroke();
         });
     }
@@ -608,9 +768,25 @@ export class FilesService {
     });
   }
 
-  async saveToFile(data: object[], path: string, outputType: string) {
+  async saveToFile(
+    data: object[],
+    path: string,
+    outputType: string,
+    session?: string,
+    groupNum?: number,
+    etapeName?: any,
+    sectionNum?: number,
+  ) {
     if (outputType == 'excel') this.saveToExcelFile(data, path);
-    else await this.saveToPdfFile(data, path);
+    else
+      await this.saveToPdfFile(
+        data,
+        path,
+        session,
+        groupNum,
+        etapeName,
+        sectionNum,
+      );
   }
 
   findAll() {

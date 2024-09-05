@@ -72,7 +72,7 @@ export class EtapesService {
       where: { etape_code },
       relations: ['modules', 'modules.students', 'modules.students.modules'],
     });
-    if (!etape) return [];
+    if (!etape) return { studentsData: [], etape: '' };
     const students: Student[] = [];
     const CNEs = new Set<string>();
     const allModules: Unit[] = [];
@@ -107,7 +107,7 @@ export class EtapesService {
       });
       studentsData.push(nStd);
     });
-    return studentsData;
+    return { studentsData, etapeName: etape.etape_name };
   }
 
   abbreviateCourseName(courseName: string) {
