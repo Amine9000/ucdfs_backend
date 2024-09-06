@@ -1,11 +1,8 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
   Param,
-  Delete,
   UseInterceptors,
   UploadedFile,
   StreamableFile,
@@ -14,7 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
-import { UpdateFileDto } from './dto/update-file.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, resolve } from 'path';
@@ -98,41 +94,16 @@ export class FilesController {
     return new StreamableFile(fileStream);
   }
 
-  @Post('/download/etapes')
-  async getStudentsValidationFilesByEtapes(
-    @Body('etape_codes') etape_codes: string[],
-    @Body('groupNum', ParseIntPipe) groupNum: number,
-  ) {
-    const output = await this.filesService.getStudentsValidationFilesByEtapes(
-      etape_codes,
-      groupNum,
-    );
-    if (typeof output != 'string') return output;
-    const file = createReadStream(output);
-
-    file.on('end', () => {
-      fs.unlink(output, (err) => {
-        if (err) {
-          this.logger.error(err.message);
-        }
-      });
-    });
-
-    return new StreamableFile(file);
-  }
-
-  @Post('/download/:etape_code')
+  @Post('/download/:etape_code/excel')
   async getStudentsValidationFiles(
     @Param('etape_code') etape_code: string,
     @Body('groupNum', ParseIntPipe) groupNum: number,
-    @Body('outputType') outputType: string,
     @Body('sectionsNbr', ParseIntPipe) sectionsNbr: number,
     @Body('session') session: 'printemps' | 'automne',
   ) {
-    const output = await this.filesService.getStudentsValidationFiles(
+    const output = await this.filesService.getStudentsValidationExcelFiles(
       etape_code,
       groupNum,
-      outputType,
       sectionsNbr,
       session,
     );
@@ -150,23 +121,30 @@ export class FilesController {
     return new StreamableFile(file);
   }
 
-  @Get()
-  findAll() {
-    return this.filesService.findAll();
-  }
+  @Post('/download/:etape_code/pdf')
+  async getStudentsValidationPdfFiles(
+    @Param('etape_code') etape_code: string,
+    @Body('groupNum', ParseIntPipe) groupNum: number,
+    @Body('sectionsNbr', ParseIntPipe) sectionsNbr: number,
+    @Body('session') session: 'printemps' | 'automne',
+  ) {
+    const output = await this.filesService.getStudentsValidationPdfFiles(
+      etape_code,
+      groupNum,
+      sectionsNbr,
+      session,
+    );
+    if (typeof output != 'string') return output;
+    const file = createReadStream(output);
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.filesService.findOne(+id);
-  }
+    file.on('end', () => {
+      fs.unlink(output, (err) => {
+        if (err) {
+          this.logger.error(err.message);
+        }
+      });
+    });
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFileDto: UpdateFileDto) {
-    return this.filesService.update(+id, updateFileDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.filesService.remove(+id);
+    return new StreamableFile(file);
   }
 }
