@@ -60,42 +60,7 @@ export class PdfFileService implements FileBuilder {
     // Pipe the document to a writable stream
     const writeStream = fs.createWriteStream(path);
     doc.pipe(writeStream);
-    const fontBold = join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      'public',
-      'fonts/bold.otf',
-    );
-    const fontMedium = join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      'public',
-      'fonts/medium.otf',
-    );
-    const fontLight = join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      'public',
-      'fonts/light.otf',
-    );
-    const robotoLight = join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      'public',
-      'fonts/light.ttf',
-    );
-    doc.registerFont('Bold', fontBold);
-    doc.registerFont('medium', fontMedium);
-    doc.registerFont('light', fontLight);
-    doc.registerFont('robotolight', robotoLight);
+    this.loadFonts(doc);
 
     // Table headers
     const headers = Object.keys(data[0]);
@@ -214,6 +179,44 @@ export class PdfFileService implements FileBuilder {
       writeStream.on('finish', resolve);
       writeStream.on('error', reject);
     });
+  }
+  loadFonts(doc: PDFKit.PDFDocument) {
+    const fontBold = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'public',
+      'fonts/bold.otf',
+    );
+    const fontMedium = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'public',
+      'fonts/medium.otf',
+    );
+    const fontLight = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'public',
+      'fonts/light.otf',
+    );
+    const robotoLight = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'public',
+      'fonts/light.ttf',
+    );
+    doc.registerFont('Bold', fontBold);
+    doc.registerFont('medium', fontMedium);
+    doc.registerFont('light', fontLight);
+    doc.registerFont('robotolight', robotoLight);
   }
   header(
     doc: PDFKit.PDFDocument,
