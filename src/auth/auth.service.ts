@@ -31,7 +31,6 @@ export class AuthService {
         email: user.user_email,
       };
       delete user.user_password;
-      delete user.user_id;
 
       return {
         access_token: await this.jwtService.signAsync(payload),

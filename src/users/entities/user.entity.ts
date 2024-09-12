@@ -24,6 +24,9 @@ export class User {
   @Column()
   user_password: string;
 
+  @Column({ default: true, type: 'boolean' })
+  is_first_login: boolean;
+
   @Column({ default: 'avatars/default.jpeg' })
   user_avatar_path: string;
 

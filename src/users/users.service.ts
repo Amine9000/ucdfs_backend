@@ -61,10 +61,7 @@ export class UsersService {
       !createUserDto.user_password ||
       createUserDto.user_password.length == 0
     ) {
-      password = passwordGenerator.generate({
-        length: 10,
-        numbers: true,
-      });
+      password = 'admin@123';
       user.user_password = await bcrypt.hash(password, saltOrRounds);
     } else {
       password = createUserDto.user_password;
@@ -74,15 +71,6 @@ export class UsersService {
     const message = {
       message: `Un nouvel utilisateur a été créé avec succès.`,
     };
-    if (!createUserDto.user_password || createUserDto.user_password.length == 0)
-      this.logger.verbose(
-        '\n+----------------------------------------------------------------------+\n',
-      );
-    this.logger.verbose('Email : ' + user.user_email);
-    this.logger.verbose('Password : ' + password);
-    this.logger.verbose(
-      '\n+----------------------------------------------------------------------+\n',
-    );
     return message;
   }
 
@@ -204,6 +192,30 @@ export class UsersService {
     return {
       message: `Password for user with ID: ${id} has been regenerated successfully.`,
       password,
+    };
+  }
+  async changepwd(id: string, password: string) {
+    const user = await this.usersRepo.findOne({
+      where: { user_id: id },
+    });
+    if (!user) {
+      return { message: 'user not found', success: false };
+    }
+    if (!user.is_first_login)
+      return {
+        message: 'user already changed its password',
+        success: false,
+      };
+
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(password, salt);
+    user.user_password = hashedPassword;
+    user.is_first_login = false;
+    await this.usersRepo.save(user);
+    return {
+      password: password,
+      message: 'Password regenerated successfully',
+      success: true,
     };
   }
 }
