@@ -21,7 +21,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('etapes')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(ROLE.Admin)
+@Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
 export class EtapesController {
   private readonly logger = new Logger(EtapesController.name);
   constructor(private readonly etapesService: EtapesService) {}
