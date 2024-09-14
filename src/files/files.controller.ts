@@ -45,18 +45,7 @@ export class FilesController {
     }),
   )
   async create(@UploadedFile() file: Express.Multer.File) {
-    const file_path = await this.filesService.create(file);
-    const fileStream = createReadStream(file_path);
-
-    fileStream.on('end', () => {
-      fs.unlink(file_path, (err) => {
-        if (err) {
-          this.logger.error(err.message);
-        }
-      });
-    });
-
-    return new StreamableFile(fileStream);
+    return this.filesService.create(file);
   }
 
   @Post('students')
