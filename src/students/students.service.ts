@@ -494,28 +494,26 @@ export class StudentsService {
     students: CreateStudentDto[],
     modules: { module_code: string; etape_code: string }[],
   ) {
-    const cneList = students.map((student) => student.student_cne);
-    const cinList = students.map((student) => student.student_cin);
+    const codeList = Array.from(
+      new Set<string>(students.map((student) => student.student_code)),
+    );
 
     // Query existing students by cne or cin
     const existingStudents =
       (await this.studentsRepo.find({
-        where: [{ student_cne: In(cneList) }, { student_cin: In(cinList) }],
+        where: [{ student_code: In(codeList) }],
+        relations: ['modules'],
       })) || [];
 
     // Filter out students that already exist in the database
-    const existingCneSet = new Set(
-      existingStudents.map((student) => student.student_cne),
-    );
-    const existingCinSet = new Set(
-      existingStudents.map((student) => student.student_cin),
+    const existingCodeSet = new Set(
+      existingStudents.map((student) => student.student_code),
     );
 
     const filteredStudents = students.filter(
-      (student) =>
-        !existingCneSet.has(student.student_cne) &&
-        !existingCinSet.has(student.student_cin),
+      (student) => !existingCodeSet.has(String(student.student_code)),
     );
+
     const modulesEntities =
       await this.modulesService.findByModulesAndEtapes(modules);
     const entities = await Promise.all(
