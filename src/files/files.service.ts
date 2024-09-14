@@ -7,9 +7,7 @@ import { CreateModuleDto } from 'src/modules/dto/create-module.dto';
 import { ModulesService } from 'src/modules/modules.service';
 import { CreateStudentDto } from 'src/students/dto/create-student.dto';
 import { StudentsService } from 'src/students/students.service';
-import { join } from 'path';
 import * as fs from 'fs';
-import { v4 } from 'uuid';
 import * as passwordGenerator from 'generate-password';
 import { StudentsFileService } from './students-file.service';
 import { FileCreatorService } from './filecreator.service';
@@ -47,8 +45,7 @@ export class FilesService {
       this.logger.verbose(
         `The file has been processed in ${processingTime / 60000} minutes`,
       );
-      const originalStudents = JSON.parse(JSON.stringify(students));
-      return this.preparePasswordsFile(file, originalStudents);
+      return students;
     }
   }
 
@@ -58,40 +55,7 @@ export class FilesService {
   ) {
     const data = this.studentsFileService.store(file, modules);
     this.logger.verbose('PROCCESS ENDED');
-    return this.preparePasswordsFile(file, data);
-  }
-
-  async preparePasswordsFile(file: Express.Multer.File, students: any[]) {
-    const dirPath = join(__dirname, '..', '..', '..', 'downloads');
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath);
-    }
-    const fileName = file.filename + '-' + v4() + '.xlsx';
-
-    const filePath = join(dirPath, fileName);
-
-    // PREPARE STUDENTS DATA
-
-    const studnets_file_data = students.map((student) => {
-      return {
-        code: student.student_code,
-        Nom: student.student_lname,
-        Prenom: student.student_fname,
-        date_naissanse: new Date(student.student_birthdate).toLocaleDateString(
-          'en-GB',
-        ),
-        cne: student.student_cne,
-        cin: student.student_cin,
-        password: student.student_pwd,
-      };
-    });
-
-    await this.filecreatorService.saveToFile(
-      studnets_file_data,
-      filePath,
-      'excel',
-    );
-    return filePath;
+    return data;
   }
 
   async deleteFile(path: string) {

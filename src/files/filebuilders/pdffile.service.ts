@@ -240,7 +240,7 @@ export class PdfFileService implements FileBuilder {
       .text('Faculté des Sciences', {
         characterSpacing: 1,
       });
-    doc.font('Bold').fontSize(12).fillColor('#001e33').text("d'El Jadida", {
+    doc.font('Bold').fontSize(12).fillColor('#001e33').text('El Jadida', {
       characterSpacing: 1,
     });
     this.currentY = this.margins.top + this.groupInfoMarginTop;

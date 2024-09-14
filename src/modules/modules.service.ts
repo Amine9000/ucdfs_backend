@@ -5,7 +5,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateModuleDto } from './dto/create-module.dto';
+import {
+  CreateModuleDto,
+  CreateModuleEtapesDto,
+} from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Unit } from './entities/unit.entity';
@@ -27,21 +30,24 @@ export class ModulesService {
     private readonly etapeService: EtapesService,
   ) {}
 
-  async create(createModuleDto: CreateModuleDto) {
-    const existingEtape = await this.etapeService.findByEtapeCode(
-      createModuleDto.etape_code,
-    );
-    if (existingEtape) {
-      const existingModule = await this.unitRepo.findOne({
-        where: { module_code: createModuleDto.module_code },
-        relations: ['etape'],
-      });
-      if (!existingModule) {
-        const unit = this.unitRepo.create({ ...createModuleDto });
-        unit.etape = existingEtape;
-        return this.unitRepo.save(unit);
-      }
-    }
+  async create(createModuleDto: CreateModuleEtapesDto) {
+    const etapes = await this.etapeRepo.find({
+      where: [{ etape_code: In(createModuleDto.etape_codes) }],
+    });
+    if (!etapes || etapes.length < 0)
+      throw new HttpException(
+        `Etape ${createModuleDto.etape_codes.join(', ')} already exists`,
+        HttpStatus.BAD_REQUEST,
+      );
+    const unit = this.unitRepo.create({ ...createModuleDto });
+    etapes.forEach((etape) => {
+      unit.etape = etape;
+      this.unitRepo.save(unit);
+    });
+    return {
+      message: 'Module created successfully',
+      unit,
+    };
   }
 
   async findByModulesAndEtapes(
@@ -199,18 +205,10 @@ export class ModulesService {
     );
     const moduleEntities = await Promise.all(
       modules.map(async (mod) => {
-        let existingModule = await this.unitRepo.findOne({
-          where: { module_code: mod.module_code, etape: etape },
+        return this.unitRepo.create({
+          ...mod,
+          etape,
         });
-
-        if (!existingModule) {
-          existingModule = this.unitRepo.create({
-            ...mod,
-            etape,
-          });
-        }
-
-        return existingModule;
       }),
     );
     return this.unitRepo.save(moduleEntities);

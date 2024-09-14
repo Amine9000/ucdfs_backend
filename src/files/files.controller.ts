@@ -24,7 +24,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @Controller('files')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(ROLE.Admin)
+@Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
 export class FilesController {
   private readonly logger = new Logger(FilesController.name);
 
@@ -77,21 +77,7 @@ export class FilesController {
     @UploadedFile() file: Express.Multer.File,
     @Body('modules') modules: string,
   ) {
-    const file_path = await this.filesService.studentsFile(
-      file,
-      JSON.parse(modules),
-    );
-    const fileStream = createReadStream(file_path);
-
-    fileStream.on('end', () => {
-      fs.unlink(file_path, (err) => {
-        if (err) {
-          this.logger.error(err.message);
-        }
-      });
-    });
-
-    return new StreamableFile(fileStream);
+    return this.filesService.studentsFile(file, JSON.parse(modules));
   }
 
   @Post('/download/:etape_code/excel')

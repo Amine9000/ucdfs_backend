@@ -10,7 +10,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ModulesService } from './modules.service';
-import { CreateModuleDto } from './dto/create-module.dto';
+import { CreateModuleEtapesDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -26,7 +26,7 @@ export class ModulesController {
   ) {}
 
   @Post()
-  create(@Body() createModuleDto: CreateModuleDto) {
+  create(@Body() createModuleDto: CreateModuleEtapesDto) {
     return this.modulesService.create(createModuleDto);
   }
 

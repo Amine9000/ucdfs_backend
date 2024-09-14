@@ -498,9 +498,10 @@ export class StudentsService {
     const cinList = students.map((student) => student.student_cin);
 
     // Query existing students by cne or cin
-    const existingStudents = await this.studentsRepo.find({
-      where: [{ student_cne: In(cneList) }, { student_cin: In(cinList) }],
-    });
+    const existingStudents =
+      (await this.studentsRepo.find({
+        where: [{ student_cne: In(cneList) }, { student_cin: In(cinList) }],
+      })) || [];
 
     // Filter out students that already exist in the database
     const existingCneSet = new Set(
@@ -529,26 +530,29 @@ export class StudentsService {
         return stdEntity;
       }),
     );
-
-    const updatedEntities = await Promise.all(
-      existingStudents.map(async (std) => {
-        const existingModuleCodes = new Set(
-          std.modules.map((mod) => mod.module_code),
-        );
+    if (existingStudents && existingStudents.length > 0) {
+      for (const std of existingStudents) {
+        const existingModuleCodes = new Set();
+        if (std.modules && std.modules.length > 0) {
+          for (const mod of std.modules) {
+            existingModuleCodes.add(mod.module_code);
+          }
+        }
         const newModules =
           await this.modulesService.findByModulesAndEtapes(modules);
+
         const uniqueNewModules = newModules.filter(
           (mod) => !existingModuleCodes.has(mod.module_code),
         );
 
         // Only add the unique new modules
         if (uniqueNewModules.length > 0) {
-          std.modules.push(...uniqueNewModules);
+          std.modules = [...(std.modules || []), ...uniqueNewModules];
         }
-        return std;
-      }),
-    );
-    entities.push(...updatedEntities);
+        // Push the updated student object into the array
+        entities.push(std);
+      }
+    }
 
     const stdNum = entities.length;
     const bulkSize = 300;
