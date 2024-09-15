@@ -49,11 +49,11 @@ export class FilesService {
     }
   }
 
-  studentsFile(
+  async studentsFile(
     file: Express.Multer.File,
     modules: { module_code: string; etape_code: string }[],
   ) {
-    const data = this.studentsFileService.store(file, modules);
+    const data = await this.studentsFileService.store(file, modules);
     this.logger.verbose('PROCCESS ENDED');
     return data;
   }

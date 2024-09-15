@@ -494,6 +494,8 @@ export class StudentsService {
     students: CreateStudentDto[],
     modules: { module_code: string; etape_code: string }[],
   ) {
+    if (modules.length <= 0) return;
+    // const etape_code = modules[0].etape_code;
     const codeList = Array.from(
       new Set<string>(students.map((student) => student.student_code)),
     );
@@ -528,6 +530,7 @@ export class StudentsService {
         return stdEntity;
       }),
     );
+
     if (existingStudents && existingStudents.length > 0) {
       for (const std of existingStudents) {
         const existingModuleCodes = new Set();

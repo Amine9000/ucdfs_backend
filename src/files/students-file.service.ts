@@ -13,14 +13,14 @@ export class StudentsFileService {
     private readonly modulesService: ModulesService,
     private readonly studentsService: StudentsService,
   ) {}
-  store(
+  async store(
     file: Express.Multer.File,
     modules: { module_code: string; etape_code: string }[],
   ) {
     let data = this.readFile(file.path);
     this.deleteFile(file.filename);
     data = data.map((d) => ({ ...d, modules: modules }));
-    this.saveStudents(data, modules);
+    await this.saveStudents(data, modules);
     return data.map((d) => {
       return {
         student_fname: d.student_fname,
