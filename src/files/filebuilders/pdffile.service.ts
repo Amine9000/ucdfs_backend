@@ -29,7 +29,7 @@ export class PdfFileService implements FileBuilder {
     this.groupInfoMarginTop = 60;
     this.currentY = 0;
     this.gap = 1;
-    this.numRowsPerPage = 30;
+    this.numRowsPerPage = 33;
     this.rowHeight = 18;
     this.numeroWidth = 30;
     this.columnWidth = 0;
@@ -76,8 +76,9 @@ export class PdfFileService implements FileBuilder {
     for (let i = 0; i < numPages; i++) {
       if (i > 0) {
         doc.addPage();
-        this.header(doc, session, groupNum, etapeName, sectionNum);
-        this.currentY = this.margins.top + this.tableMarginTop;
+        // this.header(doc, session, groupNum, etapeName, sectionNum);
+        this.numRowsPerPage = 43;
+        this.currentY = this.margins.top;
       }
       let lastheader = '';
       let currentX = 0;
@@ -271,9 +272,7 @@ export class PdfFileService implements FileBuilder {
       .font('Bold')
       .fontSize(12)
       .fillColor('#004c7f')
-      .text(listText, this.width / 2 - listTextWidth / 2, this.currentY, {
-        align: 'center',
-      });
+      .text(listText, this.width / 2 - listTextWidth / 2, this.currentY);
     doc
       .font('Bold')
       .fontSize(12)
