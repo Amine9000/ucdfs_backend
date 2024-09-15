@@ -201,11 +201,6 @@ export class UsersService {
     if (!user) {
       return { message: 'user not found', success: false };
     }
-    if (!user.is_first_login)
-      return {
-        message: 'user already changed its password',
-        success: false,
-      };
 
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(password, salt);

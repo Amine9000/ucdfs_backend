@@ -597,11 +597,6 @@ export class StudentsService {
     if (!student) {
       return { message: 'Student not found', success: false };
     }
-    if (!student.is_first_login)
-      return {
-        message: 'Student already changed its password',
-        success: false,
-      };
 
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(password, salt);
