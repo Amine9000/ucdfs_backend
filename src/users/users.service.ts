@@ -3,7 +3,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { RolesService } from 'src/roles/roles.service';
 import * as passwordGenerator from 'generate-password';
 import * as bcrypt from 'bcrypt';
@@ -75,7 +75,15 @@ export class UsersService {
   }
 
   async findAll() {
+    // where role is not students
     const users = await this.usersRepo.find({
+      where: [
+        {
+          roles: {
+            role_name: Not('student'),
+          },
+        },
+      ],
       relations: ['roles'],
     });
     return users.map((user) => {

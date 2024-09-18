@@ -63,28 +63,28 @@ export class AuthService {
 
     const isSamePwd = await bcrypt.compare(
       signInDto.password,
-      student.student_pwd,
+      student.user.user_password,
     );
 
     if (isSamePwd) {
       const payload = {
-        sub: student.id,
+        sub: student.user.user_id,
         cne: student.student_cne,
       };
-      delete student.student_pwd;
+      delete student.user.user_password;
 
       return {
         access_token: await this.jwtService.signAsync(payload),
         user: {
-          user_id: student.id,
-          user_fname: student.student_fname,
-          user_lname: student.student_lname,
+          user_id: student.user.user_id,
+          user_fname: student.user.user_fname,
+          user_lname: student.user.user_lname,
           user_cne: student.student_cne,
           user_cin: student.student_cin,
-          user_avatar_path: student.student_avatar_path,
+          user_avatar_path: student.user.user_avatar_path,
           user_birthdate: student.student_birthdate,
           user_code: student.student_code,
-          is_first_login: student.is_first_login,
+          is_first_login: student.user.is_first_login,
           roles: ['student'],
         },
       };

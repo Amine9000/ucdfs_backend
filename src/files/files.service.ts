@@ -252,36 +252,34 @@ export class FilesService {
   }
 
   async getStudentsValidationPdfFiles(
-    etape_code: string,
+    etape_id: string,
     groupNum: number,
     sectionsNbr: number,
     session: string,
   ) {
     this.filecreatorService.setBuilder(this.pdfFileService);
     const { studentsData: data, etapeName } =
-      await this.etapesService.studentsValidationByEtape(etape_code);
+      await this.etapesService.studentsValidationByEtape(etape_id);
     return this.filecreatorService.create(
       data,
       etapeName,
-      etape_code,
       groupNum,
       sectionsNbr,
       session,
     );
   }
   async getStudentsValidationExcelFiles(
-    etape_code: string,
+    etape_id: string,
     groupNum: number,
     sectionsNbr: number,
     session: string,
   ) {
     this.filecreatorService.setBuilder(this.excelFileService);
     const { studentsData: data, etapeName } =
-      await this.etapesService.studentsValidationByEtape(etape_code);
+      await this.etapesService.studentsValidationByEtape(etape_id);
     return this.filecreatorService.create(
       data,
       etapeName,
-      etape_code,
       groupNum,
       sectionsNbr,
       session,

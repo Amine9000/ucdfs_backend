@@ -3,34 +3,38 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { ServiceFields } from './entities/fields.entity';
 import { CreateDemandeDto } from './dto/create-demande.dto';
-import { State, StudentService } from './entities/student-service.entity';
-import { StudentServiceData } from './entities/student-service-data.entity';
+import { State, UserService } from './entities/user-service.entity';
+import { UserServiceData } from './entities/user-service-data.entity';
 import { Service } from './entities/service.entity';
 import { UpdateDemandeDto } from './dto/update-demande.dto';
-import { Student } from 'src/students/entities/student.entity';
+import { User } from 'src/users/entities/user.entity';
+import { Student } from 'src/users/entities/students.entity';
 
 @Injectable()
 export class DemandesService {
   constructor(
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     @InjectRepository(Student)
     private readonly studentRepo: Repository<Student>,
     @InjectRepository(Service)
     private readonly serviceRepo: Repository<Service>,
     @InjectRepository(ServiceFields)
     private readonly serviceFieldsRepo: Repository<ServiceFields>,
-    @InjectRepository(StudentService)
-    private readonly stdServiceRepo: Repository<StudentService>,
-    @InjectRepository(StudentServiceData)
-    private readonly stdServiceDataRepo: Repository<StudentServiceData>,
+    @InjectRepository(UserService)
+    private readonly userServiceRepo: Repository<UserService>,
+    @InjectRepository(UserServiceData)
+    private readonly stdServiceDataRepo: Repository<UserServiceData>,
   ) {}
 
   async createDemande(createDemandeDto: CreateDemandeDto) {
-    const { student_id, service_id, fieldsValues } = createDemandeDto;
+    const { user_id, service_id, fieldsValues } = createDemandeDto;
 
-    const student = await this.studentRepo.findOne({
-      where: { id: student_id },
+    const user = await this.userRepo.findOne({
+      where: { user_id: user_id },
+      relations: ['student'],
     });
-    if (!student) throw new NotFoundException('Student not found');
+    if (!user) throw new NotFoundException('Student not found');
 
     const service = await this.serviceRepo.findOne({
       where: { id: service_id },
@@ -45,13 +49,13 @@ export class DemandesService {
       throw new NotFoundException('One or more fields not found');
     }
 
-    const studentService = this.stdServiceRepo.create({
+    const studentService = this.userServiceRepo.create({
       service: service,
-      student: student,
+      user: user,
       created_at: new Date(),
     });
 
-    await this.stdServiceRepo.save(studentService);
+    await this.userServiceRepo.save(studentService);
 
     const studentServiceData = fieldsValues.map((fieldValue) => {
       const field = serviceFields.find((f) => f.id === fieldValue.field_id);
@@ -67,19 +71,22 @@ export class DemandesService {
     await this.stdServiceDataRepo.save(studentServiceData);
   }
 
-  async findAllDemandesByStdCNE(cne: string) {
-    const student = await this.studentRepo.findOne({
-      where: { student_cne: cne },
+  async findAllDemandesByStdID(id: string) {
+    const user = await this.userRepo.findOne({
+      where: { user_id: id },
+      relations: ['student'],
     });
 
-    if (!student) {
-      throw new NotFoundException('Student not found');
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
-    const studentServices = await this.stdServiceRepo.find({
-      where: { student: { id: student.id } },
+    const userServices = await this.userServiceRepo.find({
+      where: { user: { user_id: user.user_id } },
       relations: [
-        'student',
+        'user',
+        'user.student',
+        'user.roles',
         'service',
         'service.fields',
         'studentServiceData',
@@ -87,23 +94,27 @@ export class DemandesService {
       ],
     });
 
-    return studentServices;
+    return userServices;
   }
 
-  findAllDemandes() {
-    return this.stdServiceRepo.find({
+  async findAllDemandes() {
+    const userSer = await this.userServiceRepo.find({
       relations: [
-        'student',
+        'user',
+        'user.roles',
+        'user.student',
         'service',
         'service.fields',
         'studentServiceData',
         'studentServiceData.field',
       ],
     });
+
+    return userSer;
   }
 
   findOneDemande(id: string) {
-    return this.stdServiceRepo.findOne({
+    return this.userServiceRepo.findOne({
       where: { id },
       relations: [
         'student',
@@ -115,7 +126,7 @@ export class DemandesService {
     });
   }
   async updateDemande(id: string, updateDemandeDto: UpdateDemandeDto) {
-    const studentService = await this.stdServiceRepo.findOne({
+    const studentService = await this.userServiceRepo.findOne({
       where: { id },
     });
 
@@ -125,13 +136,13 @@ export class DemandesService {
 
     studentService.state = updateDemandeDto.state;
 
-    await this.stdServiceRepo.save(studentService);
+    await this.userServiceRepo.save(studentService);
 
     return studentService;
   }
 
   async removeDemande(id: string) {
-    const studentService = await this.stdServiceRepo.findOne({
+    const studentService = await this.userServiceRepo.findOne({
       where: { id },
     });
 
@@ -139,6 +150,6 @@ export class DemandesService {
       throw new NotFoundException('Demande not found');
     }
     if (studentService.state == State.PENDING)
-      await this.stdServiceRepo.remove(studentService);
+      await this.userServiceRepo.remove(studentService);
   }
 }

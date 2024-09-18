@@ -6,8 +6,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Service } from './service.entity';
-import { Student } from 'src/students/entities/student.entity';
-import { StudentServiceData } from './student-service-data.entity';
+import { UserServiceData } from './user-service-data.entity';
+import { User } from 'src/users/entities/user.entity';
 
 export enum State {
   IN_PROGRESS = 'in Progress',
@@ -16,23 +16,23 @@ export enum State {
   REJECTED = 'rejected',
 }
 
-@Entity({ name: 'student_service' })
-export class StudentService {
+@Entity({ name: 'user_service' })
+export class UserService {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Student, (std) => std.services, {
+  @ManyToOne(() => User, (user) => user.services, {
     onDelete: 'CASCADE',
   })
-  student: Student;
+  user: User;
 
   @ManyToOne(() => Service, (service) => service.studentServices, {
     onDelete: 'CASCADE',
   })
   service: Service;
 
-  @OneToMany(() => StudentServiceData, (serviceData) => serviceData.service)
-  studentServiceData: StudentServiceData[];
+  @OneToMany(() => UserServiceData, (serviceData) => serviceData.service)
+  studentServiceData: UserServiceData[];
 
   @Column({ type: 'enum', enum: State, default: State.PENDING })
   state: State;

@@ -54,22 +54,22 @@ export class EtapesController {
     return data;
   }
 
-  @Get(':etape_code')
-  findOne(@Param('etape_code') etape_code: string) {
-    return this.etapesService.findOne(etape_code);
+  @Get(':etape_id')
+  findOne(@Param('etape_id') etape_id: string) {
+    return this.etapesService.findOne(etape_id);
   }
 
-  @Get(':etape_code/validation')
-  studentsValidationByEtape(@Param('etape_code') etape_code: string) {
-    return this.etapesService.studentsValidationByEtape(etape_code);
+  @Get(':etape_id/validation')
+  studentsValidationByEtape(@Param('etape_id') etape_id: string) {
+    return this.etapesService.studentsValidationByEtape(etape_id);
   }
 
-  @Patch(':etape_code')
+  @Patch(':etape_id')
   update(
-    @Param('etape_code') etape_code: string,
+    @Param('etape_id') etape_id: string,
     @Body() updateEtapeDto: UpdateEtapeDto,
   ) {
-    return this.etapesService.update(etape_code, updateEtapeDto);
+    return this.etapesService.update(etape_id, updateEtapeDto);
   }
 
   @Delete('clear')
@@ -78,8 +78,8 @@ export class EtapesController {
     this.etapesService.clearAll();
   }
 
-  @Delete(':etape_code')
-  remove(@Param('etape_code') etape_code: string) {
-    return this.etapesService.remove(etape_code);
+  @Delete(':etape_id')
+  remove(@Param('etape_id') etape_id: string) {
+    return this.etapesService.remove(etape_id);
   }
 }

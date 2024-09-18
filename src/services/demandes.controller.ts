@@ -25,9 +25,9 @@ export class DemandesController {
     return this.demandeService.findAllDemandes();
   }
 
-  @Get('student/:cne')
-  findOneDemandeBystdCNE(@Param('cne') cne: string) {
-    return this.demandeService.findAllDemandesByStdCNE(cne);
+  @Get(':id')
+  findOneDemandeBystdID(@Param('id') id: string) {
+    return this.demandeService.findAllDemandesByStdID(id);
   }
 
   @Get(':id')

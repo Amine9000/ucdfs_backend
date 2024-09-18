@@ -69,15 +69,15 @@ export class FilesController {
     return this.filesService.studentsFile(file, JSON.parse(modules));
   }
 
-  @Post('/download/:etape_code/excel')
+  @Post('/download/:etape_id/excel')
   async getStudentsValidationFiles(
-    @Param('etape_code') etape_code: string,
+    @Param('etape_id') etape_id: string,
     @Body('groupNum', ParseIntPipe) groupNum: number,
     @Body('sectionsNbr', ParseIntPipe) sectionsNbr: number,
     @Body('session') session: 'printemps' | 'automne',
   ) {
     const output = await this.filesService.getStudentsValidationExcelFiles(
-      etape_code,
+      etape_id,
       groupNum,
       sectionsNbr,
       session,
@@ -98,13 +98,13 @@ export class FilesController {
 
   @Post('/download/:etape_code/pdf')
   async getStudentsValidationPdfFiles(
-    @Param('etape_code') etape_code: string,
+    @Param('etape_id') etape_id: string,
     @Body('groupNum', ParseIntPipe) groupNum: number,
     @Body('sectionsNbr', ParseIntPipe) sectionsNbr: number,
     @Body('session') session: 'printemps' | 'automne',
   ) {
     const output = await this.filesService.getStudentsValidationPdfFiles(
-      etape_code,
+      etape_id,
       groupNum,
       sectionsNbr,
       session,

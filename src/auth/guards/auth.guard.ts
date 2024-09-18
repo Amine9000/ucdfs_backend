@@ -7,7 +7,6 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { jwtConstants } from '../constants/jwtConstants';
-import { Student } from 'src/students/entities/student.entity';
 import { User } from 'src/users/entities/user.entity';
 import { DataSource } from 'typeorm';
 
@@ -41,9 +40,9 @@ export class AuthGuard implements CanActivate {
         };
       }
       if (payload.cne) {
-        const studentRepository = this.datasource.getRepository(Student);
-        const student = await studentRepository.findOne({
-          where: { student_cne: payload.cne },
+        const userRepository = this.datasource.getRepository(User);
+        const student = await userRepository.findOne({
+          where: { student: { student_cne: payload.cne } },
         });
         if (!student) return false;
         request['user'] = {

@@ -105,10 +105,10 @@ export class StudentsController {
   update(@Param('id') id: string, @Body() updateStudentDto: UpdateStudentDto) {
     return this.studentsService.update(id, updateStudentDto);
   }
-  @Patch(':code/regenpwd')
+  @Patch(':id/regenpwd')
   @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
-  regenpwd(@Param('code') code: string) {
-    return this.studentsService.regenpwd(code);
+  regenpwd(@Param('id') id: string) {
+    return this.studentsService.regenpwd(id);
   }
 
   @Patch(':code/change')
@@ -116,15 +116,9 @@ export class StudentsController {
     return this.studentsService.changepwd(code, password);
   }
 
-  @Delete('clear')
-  @Roles(ROLE.Admin)
-  clearStudentsTable() {
-    this.logger.verbose('Clearing students table', StudentsController.name);
-    return this.studentsService.clearStudentsTable();
-  }
-  @Delete(':cne')
+  @Delete(':id')
   @Roles(ROLE.Admin, ROLE.STUDENTS_MANAGER)
-  removeByCne(@Param('cne') cne: string) {
-    return this.studentsService.removeByCne(cne);
+  removeByCne(@Param('id') id: string) {
+    return this.studentsService.removeById(id);
   }
 }

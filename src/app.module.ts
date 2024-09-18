@@ -25,7 +25,7 @@ if (!fs.existsSync(publicDir)) {
       port: 3306,
       username: 'root',
       password: '',
-      database: 'ucd_db',
+      database: 'ucd_db_two',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       logging: ['error'],

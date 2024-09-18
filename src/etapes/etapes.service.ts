@@ -5,7 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Etape } from './entities/etape.entity';
 import { Repository } from 'typeorm';
 import { Unit } from 'src/modules/entities/unit.entity';
-import { Student } from 'src/students/entities/student.entity';
+import { Student } from 'src/users/entities/students.entity';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class EtapesService {
@@ -30,7 +31,7 @@ export class EtapesService {
       return [];
     }
     const data = await this.etapeRepo.find({
-      relations: ['modules', 'modules.students'],
+      relations: ['modules', 'modules.students', 'modules.students.user'],
       // implement pagination here
       skip: skip,
       take: take,
@@ -42,6 +43,7 @@ export class EtapesService {
     const etapes: object[] = [];
     for (const etape of data) {
       etapes.push({
+        id: etape.etape_id,
         code: etape.etape_code,
         nom: etape.etape_name,
         semester:
@@ -67,10 +69,15 @@ export class EtapesService {
     return studentSet.size;
   }
 
-  async studentsValidationByEtape(etape_code: string) {
+  async studentsValidationByEtape(etape_id: string) {
     const etape = await this.etapeRepo.findOne({
-      where: { etape_code },
-      relations: ['modules', 'modules.students', 'modules.students.modules'],
+      where: { etape_id },
+      relations: [
+        'modules',
+        'modules.students',
+        'modules.students.modules',
+        'modules.students.user',
+      ],
     });
     if (!etape) return { studentsData: [], etape: '' };
     const students: Student[] = [];
@@ -91,16 +98,16 @@ export class EtapesService {
     });
     const studentsData: object[] = [];
     students.forEach((std, i) => {
-      const { modules, ...rest } = std;
+      const { user, ...student } = std;
       const nStd: object = {
         Numero: i + 1,
-        Prenom: rest.student_fname,
-        Nom: rest.student_lname,
+        Prenom: user.user_fname,
+        Nom: user.user_lname,
       };
       allModules.forEach((mod) => {
         nStd[this.abbreviateCourseName(mod.module_name)] = 'NI';
       });
-      modules.forEach((mod) => {
+      student.modules.forEach((mod) => {
         if (mod_codes.has(mod.module_code)) {
           nStd[this.abbreviateCourseName(mod.module_name)] = 'I';
         }
@@ -181,17 +188,17 @@ export class EtapesService {
     return this.etapeRepo.findOne({ where: { etape_code: etape_code } });
   }
 
-  findOne(etape_code: string) {
-    return this.etapeRepo.findOne({ where: { etape_code } });
+  findOne(etape_id: string) {
+    return this.etapeRepo.findOne({ where: { etape_id } });
   }
 
-  async update(etape_code: string, updateEtapeDto: UpdateEtapeDto) {
+  async update(etape_id: string, updateEtapeDto: UpdateEtapeDto) {
     const etape = await this.etapeRepo.findOne({
-      where: { etape_code: etape_code },
+      where: { etape_id },
     });
     if (!etape) {
       return {
-        message: 'No etape found with this code ' + etape_code,
+        message: 'No etape found with this ID ' + etape_id,
         status: HttpStatus.CREATED,
       };
     }
@@ -210,19 +217,19 @@ export class EtapesService {
     return this.etapeRepo.save(etapes);
   }
 
-  async remove(etapeCode: string): Promise<void> {
+  async remove(etape_id: string): Promise<void> {
     // Start a transaction to ensure data integrity
     await this.etapeRepo.manager.transaction(
       async (transactionalEntityManager) => {
         // Find the Etape to delete
         const etape = await transactionalEntityManager.findOne(Etape, {
-          where: { etape_code: etapeCode },
-          relations: ['modules', 'modules.students'],
+          where: { etape_id: etape_id },
+          relations: ['modules', 'modules.students', 'modules.students.user'],
         });
 
         if (!etape) {
           throw new HttpException(
-            `Etape with code ${etapeCode} not found`,
+            `Etape with ID ${etape_id} not found`,
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -250,16 +257,18 @@ export class EtapesService {
         for (const student of studentsToCheck) {
           const otherEtapesCount = await transactionalEntityManager
             .createQueryBuilder()
-            .select('COUNT(DISTINCT unit.etape_code)', 'count')
+            .select('COUNT(DISTINCT etape.etape_code)', 'count')
             .from(Unit, 'unit')
             .innerJoin('unit.students', 'student')
+            .innerJoin('unit.etape', 'etape') // Join on the Etape relation
             .where('student.id = :studentId', { studentId: student.id })
-            .andWhere('unit.etape_code <> :etapeCode', { etapeCode })
+            .andWhere('etape.etape_id != :etape_id', { etape_id }) // Ensure etape_id exists in Unit
             .getRawOne();
 
           // If count is 0, delete the student
           if (parseInt(otherEtapesCount.count, 10) === 0) {
             await transactionalEntityManager.remove(Student, student);
+            await transactionalEntityManager.remove(User, student.user);
           }
         }
       },
@@ -293,12 +302,31 @@ export class EtapesService {
           .from(Etape)
           .execute();
 
-        this.logger.verbose('Clearing all records from students');
         // Delete all Students
+        // Step 1: Create a subquery to find users with the 'student' role
+        const subQuery = transactionalEntityManager
+          .createQueryBuilder(User, 'user')
+          .select('user.user_id')
+          .innerJoin('user.roles', 'role')
+          .where('role.role_name = "student"')
+          .getQuery();
+
+        this.logger.verbose('Clearing all records from students');
+        // Step 2: Delete from Student where the user has the role 'student'
         await transactionalEntityManager
           .createQueryBuilder()
           .delete()
           .from(Student)
+          .where(`user IN (${subQuery})`)
+          .execute();
+
+        this.logger.verbose('Clearing all records from users');
+        // Step 3: Delete from User where the role is 'student'
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from(User)
+          .where(`user_id IN (${subQuery})`)
           .execute();
       },
     );

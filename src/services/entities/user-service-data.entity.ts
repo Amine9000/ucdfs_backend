@@ -1,18 +1,16 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ServiceFields } from './fields.entity';
-import { StudentService } from './student-service.entity';
+import { UserService } from './user-service.entity';
 
-@Entity({ name: 'student_service_data' })
-export class StudentServiceData {
+@Entity({ name: 'user_service_data' })
+export class UserServiceData {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(
-    () => StudentService,
-    (stdService) => stdService.studentServiceData,
-    { onDelete: 'CASCADE' },
-  )
-  service: StudentService;
+  @ManyToOne(() => UserService, (stdService) => stdService.studentServiceData, {
+    onDelete: 'CASCADE',
+  })
+  service: UserService;
 
   @ManyToOne(() => ServiceFields, (field) => field.service, {
     onDelete: 'CASCADE',

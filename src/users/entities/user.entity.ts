@@ -1,11 +1,15 @@
 import { Role } from 'src/roles/entities/role.entity';
+import { UserService } from 'src/services/entities/user-service.entity';
 import {
   Column,
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Student } from './students.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -18,7 +22,7 @@ export class User {
   @Column()
   user_lname: string;
 
-  @Column({ unique: true })
+  @Column({ nullable: true })
   user_email: string;
 
   @Column()
@@ -26,6 +30,12 @@ export class User {
 
   @Column({ default: true, type: 'boolean' })
   is_first_login: boolean;
+
+  @OneToOne(() => Student, (std) => std.user)
+  student: Student;
+
+  @OneToMany(() => UserService, (stdService) => stdService.user)
+  services: UserService[];
 
   @Column({ default: 'avatars/default.jpeg' })
   user_avatar_path: string;

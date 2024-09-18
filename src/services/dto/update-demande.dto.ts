@@ -1,4 +1,4 @@
-import { State } from '../entities/student-service.entity';
+import { State } from '../entities/user-service.entity';
 
 export class UpdateDemandeDto {
   std_srvice_id: string;

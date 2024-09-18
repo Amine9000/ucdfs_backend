@@ -1,5 +1,5 @@
 import { Etape } from 'src/etapes/entities/etape.entity';
-import { Student } from 'src/students/entities/student.entity';
+import { Student } from 'src/users/entities/students.entity';
 import {
   Column,
   Entity,

@@ -13,7 +13,6 @@ export class FileCreatorService {
   async create(
     data: any[] | object[],
     etapeName: string,
-    etape_code: string,
     groupNum: number,
     sectionsNbr: number,
     session: string,
@@ -30,19 +29,13 @@ export class FileCreatorService {
         'number of groups is greater than number of studnets.',
         HttpStatus.BAD_REQUEST,
       );
-
     const sections: Map<number, object[][]> = this.devideDataIntoSection(
       data,
       groupNum,
       sectionsNbr,
     );
     // else sections = this.devideData(data, groupNum);
-    const zipPath = this.saveSectionsAsZipFile(
-      sections,
-      etape_code,
-      session,
-      etapeName,
-    );
+    const zipPath = this.saveSectionsAsZipFile(sections, session, etapeName);
     return zipPath;
   }
 
@@ -67,7 +60,6 @@ export class FileCreatorService {
 
   async saveSectionsAsZipFile(
     sections: Map<number, object[][]>,
-    etape_code: string,
     session?: string,
     etapeName?: any,
   ) {
@@ -85,12 +77,11 @@ export class FileCreatorService {
       let folderPath = temDirPath;
       const sectionNum = sections.size > 1 ? index + 1 : 0;
       if (sections.size > 1) {
-        const folderName = etape_code + '-section-' + sectionNum;
+        const folderName = 'section-' + sectionNum;
         folderPath = join(temDirPath, folderName);
       }
       await this.saveGroupsAsZipFile(
         groups,
-        etape_code,
         session,
         folderPath,
         etapeName,
@@ -109,7 +100,6 @@ export class FileCreatorService {
 
   async saveGroupsAsZipFile(
     groups: object[][],
-    etape_code: string,
     session?: string,
     folderPath?: string,
     etapeName?: any,
@@ -120,8 +110,7 @@ export class FileCreatorService {
     }
     groups.forEach(async (group: object[], index) => {
       const groupNum = index + 1;
-      const fileName =
-        etape_code + '-group-' + groupNum + '.' + this.fBuilder.ext;
+      const fileName = 'group-' + groupNum + '.' + this.fBuilder.ext;
 
       const filePath = join(folderPath, fileName);
       await this.saveToFile(

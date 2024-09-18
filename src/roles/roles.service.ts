@@ -3,7 +3,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from './entities/role.entity';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { ROLE } from 'src/auth/enums/Role.enum';
 
 @Injectable()
@@ -42,7 +42,13 @@ export class RolesService {
   }
 
   findAll() {
-    return this.rolesRepo.find();
+    return this.rolesRepo.find({
+      where: [
+        {
+          role_name: Not('student'),
+        },
+      ],
+    });
   }
   findByNames(role_names: string[]) {
     return this.rolesRepo.find({
