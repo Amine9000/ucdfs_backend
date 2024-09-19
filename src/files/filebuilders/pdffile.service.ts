@@ -62,7 +62,7 @@ export class PdfFileService implements FileBuilder {
     const writeStream = fs.createWriteStream(path);
     doc.pipe(writeStream);
     this.loadFonts(doc);
-
+    this.numRowsPerPage = 33;
     const dataFPage = data.slice(0, this.numRowsPerPage);
     const dataRest = data.slice(this.numRowsPerPage, data.length);
     // Table headers
@@ -73,7 +73,7 @@ export class PdfFileService implements FileBuilder {
         this.margins.right -
         (headers.length - 1) * this.gap) /
       headers.length;
-    await this.buildFirstPage(
+    this.buildFirstPage(
       doc,
       dataFPage,
       headers,
@@ -190,7 +190,7 @@ export class PdfFileService implements FileBuilder {
       writeStream.on('error', reject);
     });
   }
-  async buildFirstPage(
+  buildFirstPage(
     doc: PDFKit.PDFDocument,
     data: object[],
     headers: string[],
