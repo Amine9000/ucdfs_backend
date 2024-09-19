@@ -38,7 +38,7 @@ export class PdfFileService implements FileBuilder {
       top: 5,
     };
   }
-  build(
+  async build(
     data: object[],
     path: string,
     session?: string,
@@ -46,6 +46,7 @@ export class PdfFileService implements FileBuilder {
     etapeName?: any,
     sectionNum?: number,
   ): Promise<void> {
+    if (!data || data.length <= 0) return;
     // Create a new PDF document
     const doc = new PDFDocument({
       size: [this.width, this.height],
@@ -62,6 +63,8 @@ export class PdfFileService implements FileBuilder {
     doc.pipe(writeStream);
     this.loadFonts(doc);
 
+    const dataFPage = data.slice(0, this.numRowsPerPage);
+    const dataRest = data.slice(this.numRowsPerPage, data.length);
     // Table headers
     const headers = Object.keys(data[0]);
     this.columnWidth =
@@ -70,16 +73,23 @@ export class PdfFileService implements FileBuilder {
         this.margins.right -
         (headers.length - 1) * this.gap) /
       headers.length;
-    const numPages = Math.ceil(data.length / this.numRowsPerPage);
-    this.header(doc, session, groupNum, etapeName, sectionNum);
+    await this.buildFirstPage(
+      doc,
+      dataFPage,
+      headers,
+      session,
+      groupNum,
+      etapeName,
+      sectionNum,
+    );
+    this.numRowsPerPage = 43;
+    const numPages = Math.ceil(dataRest.length / this.numRowsPerPage);
     this.currentY = this.margins.top + this.tableMarginTop;
     for (let i = 0; i < numPages; i++) {
-      if (i > 0) {
-        doc.addPage();
-        // this.header(doc, session, groupNum, etapeName, sectionNum);
-        this.numRowsPerPage = 43;
-        this.currentY = this.margins.top;
-      }
+      doc.addPage();
+      // this.header(doc, session, groupNum, etapeName, sectionNum);
+      this.currentY = this.margins.top;
+
       let lastheader = '';
       let currentX = 0;
       headers.forEach((header) => {
@@ -124,7 +134,7 @@ export class PdfFileService implements FileBuilder {
           this.currentY,
         )
         .stroke();
-      data
+      dataRest
         .slice(i * this.numRowsPerPage, (i + 1) * this.numRowsPerPage)
         .forEach((row, rowIndex) => {
           currentX = 0;
@@ -173,12 +183,114 @@ export class PdfFileService implements FileBuilder {
             .stroke();
         });
     }
-
     doc.end();
 
     return new Promise((resolve, reject) => {
       writeStream.on('finish', resolve);
       writeStream.on('error', reject);
+    });
+  }
+  async buildFirstPage(
+    doc: PDFKit.PDFDocument,
+    data: object[],
+    headers: string[],
+    session: string,
+    groupNum: number,
+    etapeName: any,
+    sectionNum: number,
+  ) {
+    // Table headers
+    this.header(doc, session, groupNum, etapeName, sectionNum);
+    this.currentY = this.margins.top + this.tableMarginTop;
+    let lastheader = '';
+    let currentX = 0;
+    headers.forEach((header) => {
+      currentX += this.jump(lastheader);
+      doc
+        .rect(
+          this.startX + currentX,
+          this.currentY,
+          this.getWidth(header),
+          this.rowHeight,
+        )
+        .fill('#dddddd')
+        .stroke();
+      doc
+        .fontSize(8)
+        .font('Helvetica')
+        .fillColor('#001e33')
+        .text(
+          header == 'Numero' ? 'Nr' : header,
+          this.startX + currentX + this.paddings.left,
+          this.currentY + this.paddings.top + 1,
+          {
+            width: this.getWidth(header) - this.paddings.left,
+            height: this.rowHeight,
+            lineBreak: false,
+            ellipsis: true,
+            characterSpacing: 1,
+          },
+        );
+      lastheader = header;
+    });
+
+    this.currentY += this.rowHeight;
+
+    doc
+      .strokeColor('#001e33')
+      .moveTo(this.startX, this.currentY)
+      .lineTo(
+        this.startX +
+          headers.length * this.columnWidth +
+          (headers.length - 1) * this.gap,
+        this.currentY,
+      )
+      .stroke();
+    data.forEach((row, rowIndex) => {
+      currentX = 0;
+      lastheader = '';
+      headers.forEach((header) => {
+        currentX += this.jump(lastheader);
+        doc
+          .rect(
+            this.startX + currentX,
+            this.currentY,
+            this.getWidth(header),
+            this.rowHeight,
+          )
+          .fill(rowIndex % 2 !== 0 ? '#eeeeee' : '#ffffff') // Fill color for the cell background
+          .stroke();
+        doc
+          .fontSize(8)
+          .font('robotolight')
+          .fillColor(this.colorvalues(String(row[header])))
+          .text(
+            String(row[header]),
+            this.startX + currentX + this.paddings.left,
+            this.currentY + this.paddings.top,
+            {
+              width: this.getWidth(header),
+              height: this.rowHeight,
+              align: this.alignItem(header),
+              lineBreak: false,
+              ellipsis: true,
+              characterSpacing: 1,
+            },
+          );
+        lastheader = header;
+      });
+      this.currentY += this.rowHeight;
+
+      doc
+        .strokeColor('#001e33')
+        .moveTo(this.startX, this.currentY)
+        .lineTo(
+          this.startX +
+            headers.length * this.columnWidth +
+            (headers.length - 1) * this.gap,
+          this.currentY,
+        )
+        .stroke();
     });
   }
   loadFonts(doc: PDFKit.PDFDocument) {

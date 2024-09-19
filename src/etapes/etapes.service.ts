@@ -94,8 +94,8 @@ export class EtapesService {
       const { modules, ...rest } = std;
       const nStd: object = {
         Numero: i + 1,
-        Prenom: rest.student_fname,
         Nom: rest.student_lname,
+        Prenom: rest.student_fname,
       };
       allModules.forEach((mod) => {
         nStd[this.abbreviateCourseName(mod.module_name)] = 'NI';
