@@ -357,7 +357,11 @@ export class PdfFileService implements FileBuilder {
       characterSpacing: 1,
     });
     this.currentY = this.margins.top + this.groupInfoMarginTop;
-    const group = 'Group ' + groupNum;
+    const group =
+      'Group ' +
+      (sectionNum != 0
+        ? String.fromCharCode(65 + ((sectionNum - 1) % 26)) + groupNum
+        : groupNum);
     const groupWidth = doc.widthOfString(group, {
       characterSpacing: 1,
     });
@@ -405,7 +409,7 @@ export class PdfFileService implements FileBuilder {
       );
 
     if (sectionNum != 0) {
-      const sectionText = `Section ${sectionNum}`;
+      const sectionText = `Section ${String.fromCharCode(65 + ((sectionNum - 1) % 26))}`;
       const sectionTextWidth = doc.widthOfString(sectionText, {
         characterSpacing: 1,
       });
