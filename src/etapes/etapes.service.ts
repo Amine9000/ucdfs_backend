@@ -107,7 +107,23 @@ export class EtapesService {
       });
       studentsData.push(nStd);
     });
-    return { studentsData, etapeName: etape.etape_name };
+    return {
+      studentsData: this.sortStudents(
+        studentsData as ({ Nom: string } & { [key: string]: any })[],
+      ),
+      etapeName: etape.etape_name,
+    };
+  }
+  sortStudents(studentsData: ({ Nom: string } & { [key: string]: any })[]) {
+    return studentsData.sort((a, b) => {
+      if (a.Nom < b.Nom) {
+        return -1;
+      }
+      if (a.Nom > b.Nom) {
+        return 1;
+      }
+      return 0;
+    });
   }
 
   abbreviateCourseName(courseName: string) {
