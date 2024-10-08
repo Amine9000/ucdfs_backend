@@ -127,7 +127,7 @@ export class EtapesService {
   }
 
   abbreviateCourseName(courseName: string) {
-    courseName = courseName.replace(/[^0-9a-zA-Z ]/g, '');
+    courseName = courseName.replace(/[^0-9a-zA-ZÀ-ÖØ-öø-ÿ ]/g, '');
     const words = courseName.split(' ');
     const excludedWords = [
       'de',

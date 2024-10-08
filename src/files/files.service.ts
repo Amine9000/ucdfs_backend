@@ -70,7 +70,11 @@ export class FilesService {
 
   readFile(path: string): FileColumnsNames[] {
     this.logger.verbose('READING THE FILE.');
-    const workbook = xlsx.readFile(path, { cellDates: true });
+    const workbook = xlsx.readFile(path, {
+      cellDates: true,
+      type: 'base64',
+      raw: true,
+    });
     const sheet = workbook.SheetNames[0];
     const data: FileColumnsNames[] = xlsx.utils.sheet_to_json(
       workbook.Sheets[sheet],
